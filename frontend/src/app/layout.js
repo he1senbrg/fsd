@@ -1,3 +1,4 @@
+import { AuthProvider } from "@/context/AuthContext";
 import "./globals.css";
 
 export const viewport = {
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="antialiased">
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
