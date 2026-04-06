@@ -1,5 +1,6 @@
 "use client";
 
+import { Avatar, Button, CountBadge } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 import { cartAPI, conversationAPI, notificationAPI } from "@/lib/api";
 import Link from "next/link";
@@ -92,6 +93,7 @@ export default function Navbar() {
 
     function timeAgo(dateStr) {
         if (!dateStr) return "";
+        // eslint-disable-next-line react-hooks/purity
         const diff = Date.now() - new Date(dateStr).getTime();
         const mins = Math.floor(diff / 60000);
         if (mins < 1) return "just now";
@@ -148,9 +150,9 @@ export default function Navbar() {
                             </Link>
                         </div>
                         <div className="md:hidden flex items-center">
-                            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-[var(--deep-teal)] hover:text-[var(--terracotta)] focus:outline-none">
+                            <Button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-[var(--deep-teal)] hover:text-[var(--terracotta)] focus:outline-none">
                                 <span className="material-symbols-outlined text-3xl">{mobileMenuOpen ? "close" : "menu"}</span>
-                            </button>
+                            </Button>
                         </div>
                     </div>
                     {mobileMenuOpen && (
@@ -189,31 +191,21 @@ export default function Navbar() {
                 <div className="flex items-center gap-1 sm:gap-4 md:gap-6">
                     <Link href="/cart" className="relative p-2 text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors">
                         <span className="material-symbols-outlined">shopping_cart</span>
-                        {cartCount > 0 && (
-                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[var(--primary-color)] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white">
-                                {cartCount > 9 ? '9+' : cartCount}
-                            </span>
-                        )}
+                        <CountBadge count={cartCount} />
                     </Link>
                     <Link href="/messages" className="relative p-2 text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors">
                         <span className="material-symbols-outlined">chat</span>
-                        {unreadMessages > 0 && (
-                            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white">
-                                {unreadMessages > 9 ? '9+' : unreadMessages}
-                            </span>
-                        )}
+                        <CountBadge count={unreadMessages} colorClassName="bg-red-500" />
                     </Link>
 
                     <div className="relative" ref={notifRef}>
-                        <button
+                        <Button
                             onClick={() => setNotifOpen(!notifOpen)}
                             className="relative p-2 text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors"
                         >
                             <span className="material-symbols-outlined">notifications</span>
-                            {unreadCount > 0 && (
-                                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 border-2 border-white">{unreadCount > 9 ? '9+' : unreadCount}</span>
-                            )}
-                        </button>
+                            <CountBadge count={unreadCount} colorClassName="bg-red-500" />
+                        </Button>
 
                         {notifOpen && (
                             <div className="fixed left-4 right-4 top-[4.5rem] sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 rounded-2xl shadow-2xl border border-white/20 overflow-hidden z-50 bg-white/80 backdrop-blur-xl">
@@ -221,13 +213,13 @@ export default function Navbar() {
                                     <div className="flex items-center justify-between">
                                         <h3 className="font-bold text-base text-[var(--text-primary)] font-display">Notifications</h3>
                                         <div className="flex items-center gap-3">
-                                            <button onClick={handleMarkAllRead} className="text-xs text-[var(--primary-color)] hover:text-[var(--secondary-color)] font-medium transition-colors">
+                                            <Button onClick={handleMarkAllRead} className="text-xs text-[var(--primary-color)] hover:text-[var(--secondary-color)] font-medium transition-colors">
                                                 Mark all read
-                                            </button>
+                                            </Button>
                                             {notifications.length > 0 && (
-                                                <button onClick={handleClearAll} className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors">
+                                                <Button onClick={handleClearAll} className="text-xs text-red-400 hover:text-red-600 font-medium transition-colors">
                                                     Clear all
-                                                </button>
+                                                </Button>
                                             )}
                                         </div>
                                     </div>
@@ -257,13 +249,13 @@ export default function Navbar() {
                                                 </div>
                                                 <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
                                                     {!notif.read && <span className="w-2 h-2 bg-[var(--primary-color)] rounded-full"></span>}
-                                                    <button
+                                                    <Button
                                                         onClick={(e) => handleDeleteNotification(e, notif._id)}
                                                         className="opacity-0 group-hover:opacity-100 transition-opacity w-5 h-5 rounded-full hover:bg-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700"
                                                         aria-label="Delete notification"
                                                     >
                                                         <span className="material-symbols-outlined text-sm">close</span>
-                                                    </button>
+                                                    </Button>
                                                 </div>
                                             </div>
                                         );
@@ -274,16 +266,12 @@ export default function Navbar() {
                     </div>
 
                     <div className="relative" ref={profileRef}>
-                        <button
+                        <Button
                             onClick={() => setProfileOpen(!profileOpen)}
                             className="w-10 h-10 rounded-full overflow-hidden border-2 border-[var(--accent-color)] cursor-pointer focus:outline-none"
                         >
-                            <img
-                                alt="Profile"
-                                className="w-full h-full object-cover"
-                                src={user?.avatar || "/avatar-placeholder.svg"}
-                            />
-                        </button>
+                            <Avatar src={user?.avatar} alt="Profile" sizeClassName="w-full h-full" />
+                        </Button>
                         {profileOpen && (
                             <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl shadow-2xl border border-orange-100 overflow-hidden z-50 bg-white">
                                 <div className="px-4 py-3 border-b border-stone-100 bg-orange-50/60">
@@ -300,20 +288,20 @@ export default function Navbar() {
                                     <span className="material-symbols-outlined text-base">settings</span>
                                     Settings
                                 </Link>
-                                <button
+                                <Button
                                     onClick={handleLogout}
                                     className="flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 transition-colors w-full border-t border-stone-100"
                                 >
                                     <span className="material-symbols-outlined text-base">logout</span>
                                     Log Out
-                                </button>
+                                </Button>
                             </div>
                         )}
                     </div>
                     <div className="md:hidden">
-                        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-stone-600">
+                        <Button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-stone-600">
                             <span className="material-symbols-outlined">{mobileMenuOpen ? "close" : "menu"}</span>
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -321,9 +309,7 @@ export default function Navbar() {
                 <div className="md:hidden bg-white border-t border-orange-100 p-4 space-y-2">
                     {user && (
                         <div className="flex items-center gap-3 px-4 py-3 mb-1 bg-orange-50 rounded-xl">
-                            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-[var(--accent-color)]">
-                                <img alt="Profile" className="w-full h-full object-cover" src={user.avatar || "/avatar-placeholder.svg"} />
-                            </div>
+                            <Avatar src={user.avatar} alt="Profile" sizeClassName="w-9 h-9" className="border-2 border-[var(--accent-color)]" />
                             <div>
                                 <p className="font-semibold text-sm text-[var(--text-primary)]">{user.fullName}</p>
                                 <p className="text-xs text-stone-500 capitalize">{user.title || user.role || ""}</p>
@@ -344,9 +330,9 @@ export default function Navbar() {
                     <Link href="/orders" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-orange-50"><span className="material-symbols-outlined">confirmation_number</span>My Bookings</Link>
                     <Link href="/crowdfunding" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-orange-50"><span className="material-symbols-outlined">savings</span>Funding</Link>
                     <Link href="/settings" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-orange-50"><span className="material-symbols-outlined">settings</span>Settings</Link>
-                    <button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 w-full border-t border-stone-100 mt-1">
+                    <Button onClick={handleLogout} className="flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 w-full border-t border-stone-100 mt-1">
                         <span className="material-symbols-outlined">logout</span>Log Out
-                    </button>
+                    </Button>
                 </div>
             )}
         </nav>

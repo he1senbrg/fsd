@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Button } from "@/components/ui";
 
 export default function Footer() {
     return (
@@ -41,9 +42,9 @@ export default function Footer() {
                                 placeholder="Your email"
                                 type="email"
                             />
-                            <button className="bg-[var(--terracotta)] px-4 py-2 rounded-r-lg hover:bg-[#d06a4e] transition-colors">
+                            <Button className="bg-[var(--terracotta)] px-4 py-2 rounded-r-lg hover:bg-[#d06a4e] transition-colors">
                                 <span className="material-symbols-outlined text-white text-sm">send</span>
-                            </button>
+                            </Button>
                         </div>
                     </div>
                 </div>

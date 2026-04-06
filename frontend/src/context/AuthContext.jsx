@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
     useEffect(() => {
         const stored = localStorage.getItem("kalasetu_token");
         if (stored) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setToken(stored);
             authAPI
                 .getMe()
