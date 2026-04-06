@@ -1,6 +1,8 @@
 import Footer from "@/components/Footer";
 import Navbar from "@/components/Navbar";
+import Image from "next/image";
 import Link from "next/link";
+import { Button } from "@/components/ui";
 
 const featuredArtists = [
   { name: "Aanya Sharma", role: "Kathak Dancer", tags: ["Performance", "Workshop"], img: "https://lh3.googleusercontent.com/aida-public/AB6AXuB4Y82wjWdUTg8xJDlBH-sWIGHom3yZ_6xpFS27Ip3siiv3W1vXWZXN47P0V5xPiSU6gUfNTZgKJG1sunxQSvSJn4mIoT9zQ4jtIb4-ILz07bHwBMkFDGcuc2FBjTK9wXrb9fZ0ON8HO7no2VxYYiAMUiwtdQHkkCrEmAnsRBJ_40kmTGKcPXQafLYWQ1x43mcWhnx6-tRE65WtP1-5uxaue1D4QOGMeH7nsLUyih-n3ykPSe792Nr9m2gOIOGYj90nzD1XVhMS-h57" },
@@ -79,7 +81,14 @@ export default function Home() {
           <div className="masonry-grid">
             {featuredArtists.map((artist, i) => (
               <div key={i} className="masonry-item relative group overflow-hidden rounded-2xl cursor-pointer card-shadow">
-                <img alt={artist.role} className="w-full h-auto transform group-hover:scale-105 transition-transform duration-500" src={artist.img} />
+                <Image
+                  alt={artist.role}
+                  className="w-full h-auto transform group-hover:scale-105 transition-transform duration-500"
+                  src={artist.img}
+                  width={900}
+                  height={1200}
+                  unoptimized
+                />
                 <div className="absolute inset-0 bg-gradient-to-t from-[var(--deep-teal)]/90 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
                   <h3 className="text-white text-xl font-bold font-display">{artist.name}</h3>
                   <p className="text-[var(--sand)] text-sm mb-2">{artist.role}</p>
@@ -106,7 +115,14 @@ export default function Home() {
             {upcomingEvents.map((event, i) => (
               <div key={i} className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row h-auto md:h-56">
                 <div className="md:w-1/3 relative h-48 md:h-auto overflow-hidden">
-                  <img alt={event.title} className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700" src={event.img} />
+                  <Image
+                    alt={event.title}
+                    className="object-cover transform group-hover:scale-110 transition-transform duration-700"
+                    src={event.img}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    unoptimized
+                  />
                   <div className="absolute top-4 left-4 bg-[var(--terracotta)] text-white px-3 py-1 rounded-lg text-center shadow-lg">
                     <span className="block text-xl font-bold leading-none">{event.date}</span>
                     <span className="text-xs uppercase font-medium">{event.month}</span>
@@ -157,7 +173,14 @@ export default function Home() {
             {products.map((product, i) => (
               <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-2xl group transition-transform hover:-translate-y-2">
                 <div className="relative h-64 overflow-hidden bg-gray-100">
-                  <img alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" src={product.img} />
+                  <Image
+                    alt={product.name}
+                    className="object-cover group-hover:scale-110 transition-transform duration-500"
+                    src={product.img}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 25vw"
+                    unoptimized
+                  />
                   <div className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md text-[var(--terracotta)] cursor-pointer hover:bg-red-50">
                     <span className="material-symbols-outlined text-xl">favorite</span>
                   </div>
@@ -167,9 +190,9 @@ export default function Home() {
                   <h3 className="text-lg font-bold text-[var(--deep-teal)] mb-2 font-display">{product.name}</h3>
                   <div className="flex justify-between items-center mt-4">
                     <span className="text-xl font-bold text-[var(--terracotta)]">{product.price}</span>
-                    <button className="bg-[var(--deep-teal)] text-white p-2 rounded-lg hover:bg-[var(--terracotta)] transition-colors">
+                    <Button className="bg-[var(--deep-teal)] text-white p-2 rounded-lg hover:bg-[var(--terracotta)] transition-colors">
                       <span className="material-symbols-outlined text-sm">shopping_bag</span>
-                    </button>
+                    </Button>
                   </div>
                 </div>
               </div>
