@@ -1,5 +1,6 @@
 "use client";
 import AppShell from "@/components/AppShell";
+import VideoPlayer from "@/components/VideoPlayer";
 import { Button, Loader, PillTab } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
@@ -394,7 +395,7 @@ export default function FeedPage() {
                             </div>
                             {post.media?.some(m => m.type === 'video') && (
                                 <div className="px-4 pb-4 ">
-                                    <video src={post.media.find(m => m.type === 'video').url} controls className="rounded-xl" />
+                                    <VideoPlayer src={post.media.find(m => m.type === 'video').url} />
                                 </div>
                             )}
                             {(() => {
