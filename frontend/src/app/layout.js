@@ -1,4 +1,5 @@
 import { AuthProvider } from "@/context/AuthContext";
+import { ToastProvider } from "@/context/ToastContext";
 import {
   Inter,
   Merriweather,
@@ -56,7 +57,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="antialiased">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider><ToastProvider>{children}</ToastProvider></AuthProvider>
       </body>
     </html>
   );
