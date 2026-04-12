@@ -1,41 +1,69 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+require('dotenv').config();
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+const express = require('express');
+const http = require('http');
+const cors = require('cors');
+const helmet = require('helmet');
+const morgan = require('morgan');
+const compression = require('compression');
 
-var app = express();
+const connectDB = require('./config/db');
+const globalErrorHandler = require('./middleware/errorHandler');
+const AppError = require('./utils/AppError');
 
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'jade');
+// init express
+const app = express();
+const server = http.createServer(app);
 
-app.use(logger('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
+// middleware
+const allowedOrigins = [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:3000',
+];
+app.use(helmet());
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+}));
+app.use(morgan('dev'));
+app.use(compression());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-app.use('/', indexRouter);
-app.use('/users', usersRouter);
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  next(createError(404));
+// health
+app.get('/api/health', (req, res) => {
+    res.status(200).json({
+        status: 'success',
+        message: 'KalaSetu API is running',
+        timestamp: new Date().toISOString(),
+    });
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
-
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+app.use((req, res, next) => {
+    next(new AppError(`Cannot find ${req.originalUrl} on this server`, 404));
 });
 
-module.exports = app;
+app.use(globalErrorHandler);
+
+const PORT = process.env.PORT || 5000;
+const startServer = async () => {
+    await connectDB();
+
+    server.listen(PORT, () => {
+        console.log(`
+╔══════════════════════════════════════════╗
+║   KalaSetu API Server                    ║
+║   Running on port ${PORT}                   ║
+║   Environment: ${process.env.NODE_ENV || 'development'}               ║
+║   API: http://localhost:${PORT}/api         ║
+╚══════════════════════════════════════════╝
+    `);
+    });
+};
+
+startServer();
+
+module.exports = { app, server };
