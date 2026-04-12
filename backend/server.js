@@ -8,6 +8,7 @@ const morgan = require('morgan');
 const compression = require('compression');
 
 const connectDB = require('./config/db');
+const { setupSocketIO } = require('./config/socketio');
 const globalErrorHandler = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const AppError = require('./utils/AppError');
@@ -18,6 +19,9 @@ const authRoutes = require('./routes/authRoutes');
 // init express
 const app = express();
 const server = http.createServer(app);
+
+// socket.io
+const io = setupSocketIO(server);
 
 // middleware
 const allowedOrigins = [
