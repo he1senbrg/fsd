@@ -9,7 +9,11 @@ const compression = require('compression');
 
 const connectDB = require('./config/db');
 const globalErrorHandler = require('./middleware/errorHandler');
+const { generalLimiter } = require('./middleware/rateLimiter');
 const AppError = require('./utils/AppError');
+
+// routes imports
+const authRoutes = require('./routes/authRoutes');
 
 // init express
 const app = express();
@@ -32,6 +36,7 @@ app.use(morgan('dev'));
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(generalLimiter);
 
 // health
 app.get('/api/health', (req, res) => {
@@ -42,6 +47,10 @@ app.get('/api/health', (req, res) => {
     });
 });
 
+// routes
+app.use('/api/auth', authRoutes);
+
+// 404
 app.use((req, res, next) => {
     next(new AppError(`Cannot find ${req.originalUrl} on this server`, 404));
 });
