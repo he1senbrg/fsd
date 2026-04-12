@@ -3,6 +3,7 @@ const User = require('../models/User');
 const { generateToken } = require('../utils/tokenUtils');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
+const EmailService = require('../services/EmailService');
 
 // POST /api/auth/register
 exports.register = catchAsync(async (req, res, next) => {
@@ -17,6 +18,7 @@ exports.register = catchAsync(async (req, res, next) => {
     const user = await User.create({ fullName, email, password, role });
     const token = generateToken(user._id);
 
+    EmailService.sendWelcome(user).catch(() => { });
 
     res.status(201).json({
         status: 'success',
@@ -61,6 +63,8 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     user.passwordResetExpires = Date.now() + 60 * 60 * 1000; // 1 hour
     await user.save({ validateBeforeSave: false });
 
+    // reset email
+    await EmailService.sendPasswordReset(user, resetToken);
 
     res.status(200).json({
         status: 'success',
