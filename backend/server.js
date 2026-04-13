@@ -17,6 +17,7 @@ const NotificationService = require('./services/NotificationService');
 // routes imports
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const postRoutes = require('./routes/postRoutes');
 
 // init express
 const app = express();
@@ -57,6 +58,7 @@ app.get('/api/health', (req, res) => {
 // routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
 
 // 404
 app.use((req, res, next) => {
