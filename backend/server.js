@@ -12,9 +12,11 @@ const { setupSocketIO } = require('./config/socketio');
 const globalErrorHandler = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const AppError = require('./utils/AppError');
+const NotificationService = require('./services/NotificationService');
 
 // routes imports
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // init express
 const app = express();
@@ -22,6 +24,7 @@ const server = http.createServer(app);
 
 // socket.io
 const io = setupSocketIO(server);
+NotificationService.setIO(io);
 
 // middleware
 const allowedOrigins = [
@@ -53,6 +56,7 @@ app.get('/api/health', (req, res) => {
 
 // routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 
 // 404
 app.use((req, res, next) => {
