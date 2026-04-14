@@ -18,6 +18,7 @@ const NotificationService = require('./services/NotificationService');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const postRoutes = require('./routes/postRoutes');
+const productRoutes = require('./routes/productRoutes');
 
 // init express
 const app = express();
@@ -59,6 +60,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
+app.use('/api/products', productRoutes);
 
 // 404
 app.use((req, res, next) => {
