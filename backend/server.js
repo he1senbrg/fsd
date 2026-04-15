@@ -26,6 +26,7 @@ const opportunityRoutes = require('./routes/opportunityRoutes');
 const campaignRoutes = require('./routes/campaignRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const artistRoutes = require('./routes/artistRoutes');
+const conversationRoutes = require('./routes/conversationRoutes');
 
 // init express
 const app = express();
@@ -75,6 +76,7 @@ app.use('/api/opportunities', opportunityRoutes);
 app.use('/api/campaigns', campaignRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/artists', artistRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 // 404
 app.use((req, res, next) => {
