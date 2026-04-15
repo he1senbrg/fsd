@@ -23,6 +23,7 @@ const cartRoutes = require('./routes/cartRoutes');
 const wishlistRoutes = require('./routes/wishlistRoutes');
 const eventRoutes = require('./routes/eventRoutes');
 const opportunityRoutes = require('./routes/opportunityRoutes');
+const campaignRoutes = require('./routes/campaignRoutes');
 
 // init express
 const app = express();
@@ -69,6 +70,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/opportunities', opportunityRoutes);
+app.use('/api/campaigns', campaignRoutes);
 
 // 404
 app.use((req, res, next) => {
