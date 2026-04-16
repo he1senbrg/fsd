@@ -27,6 +27,7 @@ const campaignRoutes = require('./routes/campaignRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const artistRoutes = require('./routes/artistRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // init express
 const app = express();
@@ -77,6 +78,7 @@ app.use('/api/campaigns', campaignRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/artists', artistRoutes);
 app.use('/api/conversations', conversationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404
 app.use((req, res, next) => {
