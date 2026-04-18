@@ -30,6 +30,7 @@ const conversationRoutes = require('./routes/conversationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
+const helpRoutes = require('./routes/helpRoutes');
 
 // init express
 const app = express();
@@ -83,6 +84,7 @@ app.use('/api/conversations', conversationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/media', mediaRoutes);
+app.use('/api/help', helpRoutes);
 
 // 404
 app.use((req, res, next) => {
