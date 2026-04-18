@@ -29,6 +29,7 @@ const artistRoutes = require('./routes/artistRoutes');
 const conversationRoutes = require('./routes/conversationRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const searchRoutes = require('./routes/searchRoutes');
+const mediaRoutes = require('./routes/mediaRoutes');
 
 // init express
 const app = express();
@@ -81,6 +82,7 @@ app.use('/api/artists', artistRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/media', mediaRoutes);
 
 // 404
 app.use((req, res, next) => {
