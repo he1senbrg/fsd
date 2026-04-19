@@ -31,6 +31,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const searchRoutes = require('./routes/searchRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
 const helpRoutes = require('./routes/helpRoutes');
+const newsletterRoutes = require('./routes/newsletterRoutes');
 
 // init express
 const app = express();
@@ -85,6 +86,7 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/help', helpRoutes);
+app.use('/api/newsletter', newsletterRoutes);
 
 // 404
 app.use((req, res, next) => {
