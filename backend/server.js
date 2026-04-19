@@ -32,6 +32,7 @@ const searchRoutes = require('./routes/searchRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
 const helpRoutes = require('./routes/helpRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
 
 // init express
 const app = express();
@@ -87,6 +88,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/help', helpRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // 404
 app.use((req, res, next) => {
