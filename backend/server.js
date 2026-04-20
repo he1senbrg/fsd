@@ -13,6 +13,7 @@ const globalErrorHandler = require('./middleware/errorHandler');
 const { generalLimiter } = require('./middleware/rateLimiter');
 const AppError = require('./utils/AppError');
 const NotificationService = require('./services/NotificationService');
+const { startCampaignScheduler } = require('./services/CampaignScheduler');
 
 // routes imports
 const authRoutes = require('./routes/authRoutes');
@@ -33,6 +34,7 @@ const mediaRoutes = require('./routes/mediaRoutes');
 const helpRoutes = require('./routes/helpRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const sponsorRoutes = require('./routes/sponsorRoutes');
 
 // init express
 const app = express();
@@ -89,6 +91,7 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/help', helpRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/sponsor-tiers', sponsorRoutes);
 
 // 404
 app.use((req, res, next) => {
@@ -111,6 +114,8 @@ const startServer = async () => {
 ╚══════════════════════════════════════════╝
     `);
     });
+
+    startCampaignScheduler();
 };
 
 startServer();

@@ -17,4 +17,12 @@ const extractHashtags = (text) => {
     return matches ? matches.map((tag) => tag.replace('#', '').toLowerCase()) : [];
 };
 
-module.exports = { slugify, extractHashtags };
+// makes order id like KS-YYYYMMDD-XXX
+const generateOrderId = () => {
+    const now = new Date();
+    const date = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const rand = Math.floor(Math.random() * 900 + 100);
+    return `KS-${date}-${rand}`;
+};
+
+module.exports = { slugify, extractHashtags, generateOrderId };
