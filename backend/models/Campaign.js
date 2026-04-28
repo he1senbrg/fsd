@@ -30,7 +30,7 @@ const campaignSchema = new mongoose.Schema(
         status: {
             type: String,
             enum: ['draft', 'active', 'funded', 'failed', 'cancelled'],
-            default: 'draft',
+            default: 'active',
         },
         platformFee: { type: Number, default: 5 },
     },

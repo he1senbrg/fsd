@@ -69,7 +69,6 @@ exports.updateCampaign = catchAsync(async (req, res, next) => {
     const campaign = await Campaign.findById(req.params.id);
     if (!campaign) return next(new AppError('Not found', 404));
     if (campaign.creator.toString() !== req.user._id.toString()) return next(new AppError('Not authorized', 403));
-    if (campaign.status !== 'draft') return next(new AppError('Can only edit draft campaigns', 400));
     const updated = await Campaign.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
     res.status(200).json({ status: 'success', data: { campaign: updated } });
 });
@@ -78,12 +77,6 @@ exports.publishCampaign = catchAsync(async (req, res, next) => {
     const campaign = await Campaign.findById(req.params.id);
     if (!campaign) return next(new AppError('Not found', 404));
     if (campaign.creator.toString() !== req.user._id.toString()) return next(new AppError('Not authorized', 403));
-    if (campaign.status !== 'draft') return next(new AppError('Only draft campaigns can be published', 400));
-    campaign.status = 'active';
-    const deadline = new Date();
-    deadline.setDate(deadline.getDate() + (campaign.duration || 30));
-    campaign.deadline = deadline;
-    await campaign.save();
     res.status(200).json({ status: 'success', data: { campaign } });
 });
 

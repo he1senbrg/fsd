@@ -133,9 +133,9 @@ export default function Navbar() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-20">
                         <Link href="/" className="flex-shrink-0 flex items-center gap-2 cursor-pointer">
-                            <span className="material-symbols-outlined text-4xl text-[var(--terracotta)]">temple_hindu</span>
-                            <span className="text-3xl font-bold text-[var(--deep-teal)] tracking-tight font-display">KalaSetu</span>
-                        </Link>
+                                <span className="material-symbols-outlined text-4xl text-[var(--terracotta)]">temple_hindu</span>
+                                <span className="hidden sm:block text-3xl font-bold text-[var(--deep-teal)] tracking-tight font-display">KalaSetu</span>
+                            </Link>
                         <div className="hidden md:flex space-x-8 items-center">
                             {navLinks.map(link => (
                                 <Link key={link.href} href={link.href} className="text-[var(--deep-teal)] hover:text-[var(--terracotta)] font-medium transition-colors">
@@ -175,7 +175,7 @@ export default function Navbar() {
             <div className="max-w-7xl mx-auto px-4 h-full flex items-center justify-between">
                 <Link href="/feed" className="flex items-center gap-3">
                     <span className="material-symbols-outlined text-3xl text-[var(--terracotta)]">temple_hindu</span>
-                    <span className="text-2xl font-bold text-[var(--primary-color)] serif-font tracking-tight">KalaSetu</span>
+                    <span className="hidden sm:block text-2xl font-bold text-[var(--primary-color)] serif-font tracking-tight">KalaSetu</span>
                 </Link>
                 <div className="hidden md:flex flex-1 max-w-xl mx-8 relative">
                     <input
@@ -189,6 +189,9 @@ export default function Navbar() {
                     <span className="material-symbols-outlined absolute left-4 top-2.5 text-stone-400">search</span>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-4 md:gap-6">
+                    <Link href="/discover" className="p-2 text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors md:hidden">
+                        <span className="material-symbols-outlined">search</span>
+                    </Link>
                     <Link href="/cart" className="relative p-2 text-[var(--text-secondary)] hover:text-[var(--primary-color)] transition-colors">
                         <span className="material-symbols-outlined">shopping_cart</span>
                         <CountBadge count={cartCount} />

@@ -60,9 +60,6 @@ exports.publishEvent = catchAsync(async (req, res, next) => {
     const event = await Event.findById(req.params.id);
     if (!event) return next(new AppError('Event not found', 404));
     if (event.organizer.toString() !== req.user._id.toString()) return next(new AppError('Not authorized', 403));
-    if (event.status !== 'draft') return next(new AppError('Only draft events can be published', 400));
-    event.status = 'published';
-    await event.save();
     res.status(200).json({ status: 'success', data: { event } });
 });
 

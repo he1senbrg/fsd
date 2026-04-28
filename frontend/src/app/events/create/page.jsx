@@ -1,11 +1,23 @@
 "use client";
 import AppShell from "@/components/AppShell";
 import { Button, FormInput, FormSelect, FormStepper, FormTextarea, SurfaceCard } from "@/components/ui";
-import Link from "next/link";
+import { useToast } from "@/context/ToastContext";
+import { eventAPI } from "@/lib/api";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 export default function EventCreatePage() {
     const [step, setStep] = useState(1);
+    const [title, setTitle] = useState("");
+    const [category, setCategory] = useState("performance");
+    const [artForm, setArtForm] = useState("Classical Music");
+    const [description, setDescription] = useState("");
+    const [date, setDate] = useState("");
+    const [time, setTime] = useState("");
+    const [venue, setVenue] = useState("");
+    const [publishing, setPublishing] = useState(false);
+    const showToast = useToast();
+    const router = useRouter();
     return (
         <AppShell>
             <div className="py-2">
@@ -22,39 +34,39 @@ export default function EventCreatePage() {
                         <div className="space-y-6">
                             <div>
                                 <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Event Title *</label>
-                                <FormInput className="focus:border-transparent" placeholder="e.g., Evening of Ragas" type="text" />
+                                <FormInput value={title} onChange={(e) => setTitle(e.target.value)} className="focus:border-transparent" placeholder="e.g., Evening of Ragas" type="text" />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Category *</label>
-                                    <FormSelect>
-                                        <option>Performance</option><option>Workshop</option><option>Exhibition</option><option>Festival</option><option>Competition</option>
+                                    <FormSelect value={category} onChange={(e) => setCategory(e.target.value)}>
+                                        <option value="performance">Performance</option><option value="workshop">Workshop</option><option value="exhibition">Exhibition</option><option value="festival">Festival</option><option value="competition">Competition</option>
                                     </FormSelect>
                                 </div>
                                 <div>
                                     <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Art Form *</label>
-                                    <FormSelect>
-                                        <option>Classical Music</option><option>Folk Dance</option><option>Painting</option><option>Pottery</option><option>Theatre</option>
+                                    <FormSelect value={artForm} onChange={(e) => setArtForm(e.target.value)}>
+                                        <option value="Classical Music">Classical Music</option><option value="Folk Dance">Folk Dance</option><option value="Painting">Painting</option><option value="Pottery">Pottery</option><option value="Theatre">Theatre</option>
                                     </FormSelect>
                                 </div>
                             </div>
                             <div>
                                 <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Description *</label>
-                                <FormTextarea rows={4} placeholder="Tell attendees what to expect..." />
+                                <FormTextarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} placeholder="Tell attendees what to expect..." />
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Date *</label>
-                                    <FormInput type="date" />
+                                    <FormInput value={date} onChange={(e) => setDate(e.target.value)} type="date" />
                                 </div>
                                 <div>
                                     <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Time *</label>
-                                    <FormInput type="time" />
+                                    <FormInput value={time} onChange={(e) => setTime(e.target.value)} type="time" />
                                 </div>
                             </div>
                             <div>
                                 <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Venue / Location *</label>
-                                <FormInput placeholder="Venue name, Address, City" type="text" />
+                                <FormInput value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="Venue name, Address, City" type="text" />
                             </div>
                             <div>
                                 <label className="text-sm font-semibold text-[var(--text-primary)] mb-2 block">Cover Image</label>
@@ -113,9 +125,34 @@ export default function EventCreatePage() {
                         {step < 3 ? (
                             <Button onClick={() => setStep(step + 1)} className="bg-[var(--primary-color)] text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-[var(--secondary-color)] transition-colors shadow-md">Next Step</Button>
                         ) : (
-                            <Link href="/opportunities" className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-md flex items-center gap-2">
-                                <span className="material-symbols-outlined text-sm">publish</span>Publish Event
-                            </Link>
+                            <Button onClick={async () => {
+                                if (!title.trim()) { showToast('Please enter an event title.', 'warning'); return; }
+                                if (!date) { showToast('Please enter a date.', 'warning'); return; }
+                                if (!time) { showToast('Please enter a time.', 'warning'); return; }
+                                setPublishing(true);
+                                try {
+                                    const startDate = new Date(`${date}T${time}:00`).toISOString();
+                                    const payload = {
+                                        title: title.trim(),
+                                        category,
+                                        artForm,
+                                        description,
+                                        startDate,
+                                        time,
+                                        venue,
+                                    };
+                                    console.log('Publishing event with payload:', payload);
+                                    const response = await eventAPI.createEvent(payload);
+                                    console.log('Event created response:', response);
+                                    showToast('Event created successfully!', 'success');
+                                    router.push('/opportunities?refresh=true');
+                                } catch (err) {
+                                    console.error('Event creation error:', err);
+                                    showToast(err?.data?.message || err?.message || 'Failed to create event.', 'error');
+                                } finally { setPublishing(false); }
+                            }} className="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition-colors shadow-md flex items-center gap-2" disabled={publishing}>
+                                <span className="material-symbols-outlined text-sm">publish</span>{publishing ? 'Publishing...' : 'Publish Event'}
+                            </Button>
                         )}
                     </div>
                 </SurfaceCard>
