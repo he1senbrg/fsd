@@ -99,6 +99,8 @@ export const eventAPI = {
             body: JSON.stringify({ ticketTier, quantity }),
         }),
     rsvpEvent: (id) => request(`/events/${id}/rsvp`, { method: 'POST' }),
+    createEvent: (data) =>
+        request(`/events`, { method: 'POST', body: JSON.stringify(data) }),
 };
 
 export const opportunityAPI = {

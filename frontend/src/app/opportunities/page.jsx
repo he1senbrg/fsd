@@ -5,7 +5,7 @@ import { useToast } from "@/context/ToastContext";
 import { eventAPI, opportunityAPI } from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function OpportunitiesPage() {
@@ -77,6 +77,7 @@ export default function OpportunitiesPage() {
     };
 
     const tabs = ["All", "Events", "Open Calls", "Workshops", "Gigs", "Exhibitions"];
+    const searchParams = useSearchParams();
 
     useEffect(() => {
         async function load() {
@@ -91,7 +92,7 @@ export default function OpportunitiesPage() {
             setLoading(false);
         }
         load();
-    }, []);
+    }, [searchParams]);
 
     if (loading) {
         return (
