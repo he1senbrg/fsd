@@ -1,5 +1,6 @@
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastProvider } from "@/context/ToastContext";
+import { ArtFormProvider } from "@/context/ArtFormContext";
 import {
   Inter,
   Merriweather,
@@ -57,7 +58,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body className="antialiased">
-        <AuthProvider><ToastProvider>{children}</ToastProvider></AuthProvider>
+        <AuthProvider><ToastProvider><ArtFormProvider>{children}</ArtFormProvider></ToastProvider></AuthProvider>
       </body>
     </html>
   );

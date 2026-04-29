@@ -268,3 +268,12 @@ export const paymentAPI = {
             body: JSON.stringify({ amount, type }),
         }),
 };
+
+export const artFormAPI = {
+    getAll: () => request('/art-forms'),
+    create: (data) =>
+        request('/art-forms', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }),
+};

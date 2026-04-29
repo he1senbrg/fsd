@@ -6,11 +6,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { useArtForms } from "@/context/ArtFormContext";
 
 function DiscoverContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const initialQuery = searchParams.get("q") || "";
+    const { artForms } = useArtForms();
 
     const [artists, setArtists] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -64,7 +66,10 @@ function DiscoverContent() {
                         value={artForm}
                         onChange={(e) => setArtForm(e.target.value)}
                     >
-                        <option>All Art Forms</option><option>Dance</option><option>Music</option><option>Pottery</option><option>Textile</option><option>Painting</option>
+                        <option value="All Art Forms">All Art Forms</option>
+                        {artForms.map(form => (
+                            <option key={form} value={form}>{form}</option>
+                        ))}
                     </select>
                     <select
                         className="bg-stone-50 border-none rounded-lg px-4 py-3 text-sm"
@@ -81,10 +86,17 @@ function DiscoverContent() {
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {artists.filter(artist => {
+                        const searchLower = searchQuery.toLowerCase();
                         const matchesQuery = searchQuery === "" ||
-                            (artist.name || artist.fullName)?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                            (artist.role || artist.title || artist.primaryArtForm)?.toLowerCase().includes(searchQuery.toLowerCase());
-                        const matchesArtForm = artForm === "All Art Forms" || (artist.role || artist.title || artist.primaryArtForm) === artForm || (artist.tags || []).includes(artForm);
+                            (artist.name || artist.fullName)?.toLowerCase().includes(searchLower) ||
+                            artist.role?.toLowerCase().includes(searchLower) ||
+                            artist.title?.toLowerCase().includes(searchLower) ||
+                            artist.primaryArtForm?.toLowerCase().includes(searchLower);
+                        const matchesArtForm = artForm === "All Art Forms" || 
+                            artist.role === artForm || 
+                            artist.title === artForm || 
+                            artist.primaryArtForm === artForm || 
+                            (artist.tags || []).includes(artForm);
                         const matchesLocation = location === "All Locations" || artist.location === location;
                         return matchesQuery && matchesArtForm && matchesLocation;
                     }).map((artist, i) => (

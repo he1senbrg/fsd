@@ -3,6 +3,7 @@ import AppShell from "@/components/AppShell";
 import { Button, Loader } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
+import { useArtForms } from "@/context/ArtFormContext";
 import { userAPI } from "@/lib/api";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
@@ -11,7 +12,6 @@ const tabs = [
     { id: "profile", icon: "person", label: "Profile" },
     { id: "account", icon: "lock", label: "Account & Security" },
     { id: "notifications", icon: "notifications", label: "Notifications" },
-    { id: "privacy", icon: "shield", label: "Privacy" },
     { id: "billing", icon: "payments", label: "Billing" },
 ];
 
@@ -28,6 +28,16 @@ export default function SettingsPage() {
     const avatarInputRef = useRef(null);
 
     const [formData, setFormData] = useState({});
+    const { artForms, addArtForm } = useArtForms();
+    const [customArtForm, setCustomArtForm] = useState("");
+
+    const handlePricingChange = (index, field, value) => {
+        const newPricing = [...(formData.pricing || [])];
+        newPricing[index] = { ...newPricing[index], [field]: field === 'price' ? Number(value) : value };
+        setFormData(prev => ({ ...prev, pricing: newPricing }));
+    };
+    const addPricing = () => setFormData(prev => ({ ...prev, pricing: [...(formData.pricing || []), { service: "", price: 0 }] }));
+    const removePricing = (index) => setFormData(prev => ({ ...prev, pricing: (formData.pricing || []).filter((_, i) => i !== index) }));
 
     useEffect(() => {
         let cancelled = false;
@@ -38,11 +48,14 @@ export default function SettingsPage() {
                 const raw = res.data?.user || res.data?.settings || res.data || {};
                 const data = raw.fullName !== undefined ? raw : (raw.user || raw);
                 const mutated = { ...data };
-                if (mutated.fullName && !mutated.firstName) {
-                    const parts = mutated.fullName.split(" ");
-                    mutated.firstName = parts[0] || "";
-                    mutated.lastName = parts.slice(1).join(" ") || "";
-                }
+                if (!mutated.socialLinks) mutated.socialLinks = { website: '', instagram: '', facebook: '', youtube: '' };
+                if (!mutated.notificationPrefs) mutated.notificationPrefs = { messages: true, eventReminders: true, orderUpdates: true, newFollowers: false, promotions: false };
+                if (!mutated.privacySettings) mutated.privacySettings = { profileVisibility: "Public", showOnline: true, showLocation: true };
+                if (!mutated.payoutDetails) mutated.payoutDetails = { bankName: '', accountNumber: '', ifscCode: '', upiId: '' };
+                if (!mutated.pricing) mutated.pricing = [];
+                if (!mutated.specializations) mutated.specializations = [];
+                if (!mutated.languages) mutated.languages = [];
+                
                 if (!cancelled) {
                     setSettings(mutated);
                     setFormData(mutated);
@@ -50,11 +63,15 @@ export default function SettingsPage() {
             } catch (e) {
                 if (e?.status !== 401) console.error(e);
                 if (!cancelled && authUser) {
-                    const parts = (authUser.fullName || "").split(" ");
                     const fallback = {
                         ...authUser,
-                        firstName: parts[0] || "",
-                        lastName: parts.slice(1).join(" ") || "",
+                        socialLinks: authUser.socialLinks || { website: '', instagram: '', facebook: '', youtube: '' },
+                        notificationPrefs: authUser.notificationPrefs || { messages: true, eventReminders: true, orderUpdates: true, newFollowers: false, promotions: false },
+                        privacySettings: authUser.privacySettings || { profileVisibility: "Public", showOnline: true, showLocation: true },
+                        payoutDetails: authUser.payoutDetails || { bankName: '', accountNumber: '', ifscCode: '', upiId: '' },
+                        pricing: authUser.pricing || [],
+                        specializations: authUser.specializations || [],
+                        languages: authUser.languages || [],
                     };
                     setSettings(fallback);
                     setFormData(fallback);
@@ -70,10 +87,22 @@ export default function SettingsPage() {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: type === 'checkbox' ? checked : value
-        }));
+        const val = type === 'checkbox' ? checked : value;
+        if (name.includes('.')) {
+            const [parent, child] = name.split('.');
+            setFormData(prev => ({
+                ...prev,
+                [parent]: {
+                    ...(prev[parent] || {}),
+                    [child]: val
+                }
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                [name]: val
+            }));
+        }
     };
 
     const handleSave = async (e) => {
@@ -82,26 +111,20 @@ export default function SettingsPage() {
         try {
             if (activeTab === "profile") {
                 const payload = { ...formData };
-                if (payload.firstName !== undefined || payload.lastName !== undefined) {
-                    payload.fullName = `${payload.firstName ?? ""} ${payload.lastName ?? ""}`.trim();
-                }
-                if (payload.artForm !== undefined) {
-                    payload.primaryArtForm = payload.artForm;
-                }
+                // check if arrays are arrays
+                if (typeof payload.specializations === 'string') payload.specializations = payload.specializations.split(',').map(s => s.trim()).filter(Boolean);
+                if (typeof payload.languages === 'string') payload.languages = payload.languages.split(',').map(s => s.trim()).filter(Boolean);
+
                 const res = await userAPI.updateProfile(payload);
-                // sync the updated user into AuthContext
                 const updated = res.data?.user || res.data || payload;
                 updateUser(updated);
                 setSettings(prev => ({ ...prev, ...updated }));
                 showToast("Profile updated successfully!", "success");
             } else if (activeTab === "notifications") {
-                await userAPI.updateNotifications(formData);
+                await userAPI.updateNotifications(formData.notificationPrefs);
                 showToast("Notification preferences updated!", "success");
-            } else if (activeTab === "privacy") {
-                await userAPI.updatePrivacy(formData);
-                showToast("Privacy settings updated!", "success");
             } else if (activeTab === "billing") {
-                await userAPI.updatePayout(formData);
+                await userAPI.updatePayout(formData.payoutDetails);
                 showToast("Payout details updated!", "success");
             }
         } catch (error) {
@@ -166,8 +189,6 @@ export default function SettingsPage() {
 
     // default user data if settings empty
     const u = settings || authUser || {};
-    const firstName = u.firstName || (u.fullName ? u.fullName.split(" ")[0] : "");
-    const lastName = u.lastName || (u.fullName?.includes(" ") ? u.fullName.split(" ").slice(1).join(" ") : "");
 
     return (
         <AppShell>
@@ -191,8 +212,8 @@ export default function SettingsPage() {
                     {activeTab === "profile" && (
                         <div className="space-y-6">
                             <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4 serif-font">Edit Profile</h2>
-                            <div className="flex items-center gap-6 mb-6">
-                                <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-[var(--accent-color)] relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
+                            <div className="flex flex-col sm:flex-row gap-6 mb-6 items-start sm:items-center">
+                                <div className="w-20 h-20 flex-shrink-0 rounded-full overflow-hidden border-2 border-[var(--accent-color)] relative group cursor-pointer" onClick={() => avatarInputRef.current?.click()}>
                                     <Image
                                         alt="Profile"
                                         className="w-full h-full object-cover"
@@ -207,24 +228,89 @@ export default function SettingsPage() {
                                             : <span className="material-symbols-outlined text-white text-xl">photo_camera</span>}
                                     </div>
                                 </div>
-                                <div>
-                                    <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                                    <Button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} className="text-sm text-[var(--secondary-color)] font-semibold hover:underline disabled:opacity-50">
-                                        {avatarUploading ? 'Uploading...' : 'Change Photo'}
-                                    </Button>
-                                    <p className="text-xs text-stone-400 mt-1">JPG, PNG, max 2MB</p>
+                                <div className="flex flex-col gap-2 flex-1">
+                                    <div>
+                                        <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                                        <Button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} className="text-sm text-[var(--secondary-color)] font-semibold hover:underline disabled:opacity-50">
+                                            {avatarUploading ? 'Uploading...' : 'Change Photo'}
+                                        </Button>
+                                        <p className="text-xs text-stone-400 mt-1">JPG, PNG, max 2MB</p>
+                                    </div>
+                                    <div className="w-full">
+                                        <label className="text-sm font-medium text-stone-600 mb-1 block">Cover Image (URL)</label>
+                                        <input name="coverImage" value={formData.coverImage ?? u.coverImage ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" placeholder="https://example.com/cover.jpg" />
+                                    </div>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div><label className="text-sm font-medium text-stone-600 mb-1 block">First Name</label><input name="firstName" value={formData.firstName ?? firstName} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
-                                <div><label className="text-sm font-medium text-stone-600 mb-1 block">Last Name</label><input name="lastName" value={formData.lastName ?? lastName} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
+                                <div><label className="text-sm font-medium text-stone-600 mb-1 block">Full Name</label><input name="fullName" value={formData.fullName ?? u.fullName ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
+                                <div><label className="text-sm font-medium text-stone-600 mb-1 block">Title / Headline</label><input name="title" value={formData.title ?? u.title ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" placeholder="e.g. Kathak Dancer & Choreographer" /></div>
+                                <div>
+                                    <label className="text-sm font-medium text-stone-600 mb-1 block">Account Role</label>
+                                    <select name="role" value={formData.role || u.role || "artist"} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]">
+                                        <option value="artist">Artist</option>
+                                        <option value="organizer">Organizer</option>
+                                        <option value="user">User / Patron</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium text-stone-600 mb-2 block">Verified Status</label>
+                                    <div className="flex items-center">
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" name="verified" checked={formData.verified !== undefined ? formData.verified : (u.verified || u.isVerified || false)} onChange={handleChange} className="sr-only peer" />
+                                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                                        </label>
+                                        <span className="ml-3 text-sm font-bold text-stone-600">
+                                            {(formData.verified !== undefined ? formData.verified : (u.verified || u.isVerified)) ? "Verified" : "Unverified"}
+                                        </span>
+                                    </div>
+                                </div>
                             </div>
                             <div><label className="text-sm font-medium text-stone-600 mb-1 block">Bio</label><textarea name="bio" value={formData.bio ?? u.bio ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)] resize-none" rows={3} /></div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label className="text-sm font-medium text-stone-600 mb-1 block">Location</label><input name="location" value={formData.location ?? u.location ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
-                                <div><label className="text-sm font-medium text-stone-600 mb-1 block">Art Form</label><select name="artForm" value={formData.artForm || u.primaryArtForm || "Kathak"} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]"><option>Kathak</option><option>Bharatanatyam</option><option>Classical Music</option></select></div>
+                                <div>
+                                    <label className="text-sm font-medium text-stone-600 mb-1 block">Primary Art Form</label>
+                                    <select name="primaryArtForm" value={formData.primaryArtForm || u.primaryArtForm || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-[var(--secondary-color)] mb-2">
+                                        <option value="">Select Art Form...</option>
+                                        {artForms.map(af => (
+                                            <option key={af} value={af}>{af}</option>
+                                        ))}
+                                    </select>
+                                    <div className="flex gap-2">
+                                        <input type="text" placeholder="Add custom art form" value={customArtForm} onChange={e => setCustomArtForm(e.target.value)} className="flex-1 border border-stone-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" />
+                                        <Button type="button" onClick={() => { addArtForm(customArtForm); setFormData(prev => ({...prev, primaryArtForm: customArtForm})); setCustomArtForm(""); }} className="bg-stone-100 text-stone-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-stone-200">Add</Button>
+                                    </div>
+                                </div>
                             </div>
-                            <div><label className="text-sm font-medium text-stone-600 mb-1 block">Website / Portfolio</label><input name="website" value={formData.website || u.website || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" placeholder="https://your-website.com" /></div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div><label className="text-sm font-medium text-stone-600 mb-1 block">Specializations (comma separated)</label><input name="specializations" value={formData.specializations?.join(', ') || ""} onChange={e => setFormData(prev => ({...prev, specializations: e.target.value.split(',').map(s => s.trimStart())}))} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
+                                <div><label className="text-sm font-medium text-stone-600 mb-1 block">Languages (comma separated)</label><input name="languages" value={formData.languages?.join(', ') || ""} onChange={e => setFormData(prev => ({...prev, languages: e.target.value.split(',').map(s => s.trimStart())}))} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
+                            </div>
+                            <div><label className="text-sm font-medium text-stone-600 mb-1 block">Education</label><input name="education" value={formData.education ?? u.education ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" placeholder="Your educational background" /></div>
+                            
+                            <div>
+                                <label className="text-sm font-medium text-stone-600 mb-2 block">Pricing / Services</label>
+                                {(formData.pricing || []).map((p, i) => (
+                                    <div key={i} className="flex gap-2 mb-2 items-center">
+                                        <input type="text" placeholder="Service (e.g. 1hr Session)" value={p.service || ""} onChange={e => handlePricingChange(i, 'service', e.target.value)} className="flex-1 border border-stone-300 rounded-lg px-3 py-2 text-sm" />
+                                        <input type="number" placeholder="Price" value={p.price || ""} onChange={e => handlePricingChange(i, 'price', e.target.value)} className="w-32 border border-stone-300 rounded-lg px-3 py-2 text-sm" />
+                                        <Button type="button" onClick={() => removePricing(i)} className="text-red-500"><span className="material-symbols-outlined text-lg">delete</span></Button>
+                                    </div>
+                                ))}
+                                <Button type="button" onClick={addPricing} className="text-[var(--secondary-color)] text-sm font-semibold flex items-center gap-1 mt-1"><span className="material-symbols-outlined text-base">add</span> Add Service</Button>
+                            </div>
+
+                            <div>
+                                <label className="text-sm font-medium text-stone-600 mb-2 block">Social Links</label>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <input name="socialLinks.website" value={formData.socialLinks?.website || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2 text-sm" placeholder="Website URL" />
+                                    <input name="socialLinks.instagram" value={formData.socialLinks?.instagram || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2 text-sm" placeholder="Instagram URL" />
+                                    <input name="socialLinks.facebook" value={formData.socialLinks?.facebook || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2 text-sm" placeholder="Facebook URL" />
+                                    <input name="socialLinks.youtube" value={formData.socialLinks?.youtube || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2 text-sm" placeholder="YouTube URL" />
+                                </div>
+                            </div>
+
                             <div className="flex justify-end gap-3 pt-4 border-t border-stone-100">
                                 <Button className="px-5 py-2 text-sm text-stone-600 border border-stone-300 rounded-lg hover:bg-stone-50">Cancel</Button>
                                 <Button variant="primary" onClick={handleSave} disabled={saving} className="text-sm shadow-md">{saving ? "Saving..." : "Save Changes"}</Button>
@@ -234,8 +320,20 @@ export default function SettingsPage() {
                     {activeTab === "account" && (
                         <div className="space-y-6">
                             <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4 serif-font">Account & Security</h2>
-                            <div><label className="text-sm font-medium text-stone-600 mb-1 block">Email</label><input className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" defaultValue={u.email || ""} type="email" /></div>
-                            <div><label className="text-sm font-medium text-stone-600 mb-1 block">Phone</label><input className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" defaultValue={u.phone || ""} type="tel" /></div>
+                            <div><label className="text-sm font-medium text-stone-600 mb-1 block">Email</label><input name="email" value={formData.email ?? u.email ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" type="email" /></div>
+                            <div><label className="text-sm font-medium text-stone-600 mb-1 block">Phone</label><input name="phone" value={formData.phone ?? u.phone ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" type="tel" /></div>
+                            <div className="flex justify-end gap-3 pt-2 pb-4">
+                                <Button variant="primary" onClick={async (e) => {
+                                    e.preventDefault();
+                                    setSaving(true);
+                                    try {
+                                        const res = await userAPI.updateProfile({ email: formData.email, phone: formData.phone });
+                                        updateUser(res.data?.user || res.data);
+                                        showToast("Account details updated!", "success");
+                                    } catch (err) { showToast("Failed to update account details.", "error"); }
+                                    setSaving(false);
+                                }} disabled={saving} className="text-sm shadow-md">{saving ? "Saving..." : "Save Details"}</Button>
+                            </div>
                             <hr className="border-stone-100" />
                             <h3 className="font-bold text-[var(--text-primary)]">Change Password</h3>
                             <div><label className="text-sm font-medium text-stone-600 mb-1 block">Current Password</label><input value={pwForm.current} onChange={(e) => setPwForm(prev => ({ ...prev, current: e.target.value }))} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" type="password" placeholder="Enter current password" /></div>
@@ -252,11 +350,9 @@ export default function SettingsPage() {
                         <div className="space-y-6">
                             <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4 serif-font">Notification Preferences</h2>
                             {[
-                                { id: "notifyMessages", label: "New messages", desc: "Get notified when someone sends you a message", default: true },
-                                { id: "notifyEvents", label: "Event reminders", desc: "Reminders for upcoming events you've booked", default: true },
-                                { id: "notifyOrders", label: "Order updates", desc: "Track your purchases and bookings", default: true },
-                                { id: "notifyFollowers", label: "New followers", desc: "When someone follows your profile", default: false },
-                                { id: "notifyPromos", label: "Promotional emails", desc: "Offers, featured artists, and newsletters", default: false },
+                                { id: "eventReminders", label: "Event reminders", desc: "Reminders for upcoming events you've booked", default: true },
+                                { id: "orderUpdates", label: "Order updates", desc: "Track your purchases and bookings", default: true },
+                                { id: "newFollowers", label: "New followers", desc: "When someone follows your profile", default: false },
                             ].map((pref) => (
                                 <div key={pref.id} className="flex items-center justify-between py-3 border-b border-stone-50">
                                     <div>
@@ -264,7 +360,7 @@ export default function SettingsPage() {
                                         <p className="text-xs text-stone-500">{pref.desc}</p>
                                     </div>
                                     <label className="relative inline-flex items-center cursor-pointer">
-                                        <input type="checkbox" name={pref.id} checked={formData[pref.id] !== undefined ? formData[pref.id] : pref.default} onChange={handleChange} className="sr-only peer" />
+                                        <input type="checkbox" name={`notificationPrefs.${pref.id}`} checked={formData.notificationPrefs?.[pref.id] !== undefined ? formData.notificationPrefs[pref.id] : pref.default} onChange={handleChange} className="sr-only peer" />
                                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:bg-[var(--primary-color)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
                                     </label>
                                 </div>
@@ -274,65 +370,19 @@ export default function SettingsPage() {
                             </div>
                         </div>
                     )}
-                    {activeTab === "privacy" && (
-                        <div className="space-y-6">
-                            <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4 serif-font">Privacy Settings</h2>
-                            <div className="flex items-center justify-between py-3 border-b border-stone-50">
-                                <div>
-                                    <h4 className="font-medium text-[var(--text-primary)] text-sm">Profile visibility</h4>
-                                    <p className="text-xs text-stone-500">Who can see your profile</p>
-                                </div>
-                                <select name="profileVisibility" value={formData.profileVisibility || "Public"} onChange={handleChange} className="border border-stone-300 rounded-lg px-3 py-1.5 text-sm">
-                                    <option>Public</option>
-                                    <option>Followers Only</option>
-                                    <option>Private</option>
-                                </select>
-                            </div>
-                            <div className="flex items-center justify-between py-3 border-b border-stone-50">
-                                <div>
-                                    <h4 className="font-medium text-[var(--text-primary)] text-sm">Show online status</h4>
-                                    <p className="text-xs text-stone-500">Let others see when you&apos;re online</p>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" name="showOnlineStatus" checked={formData.showOnlineStatus !== undefined ? formData.showOnlineStatus : true} onChange={handleChange} className="sr-only peer" />
-                                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[var(--primary-color)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                                </label>
-                            </div>
-                            <div className="flex items-center justify-between py-3 border-b border-stone-50">
-                                <div>
-                                    <h4 className="font-medium text-[var(--text-primary)] text-sm">Show location</h4>
-                                    <p className="text-xs text-stone-500">Display your location on your profile</p>
-                                </div>
-                                <label className="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" name="showLocation" checked={formData.showLocation !== undefined ? formData.showLocation : true} onChange={handleChange} className="sr-only peer" />
-                                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-[var(--primary-color)] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
-                                </label>
-                            </div>
-                            <div className="flex justify-end pt-2">
-                                <Button variant="primary" onClick={handleSave} disabled={saving} className="text-sm shadow-md">{saving ? "Saving..." : "Save Privacy Settings"}</Button>
-                            </div>
-                        </div>
-                    )}
+
                     {activeTab === "billing" && (
                         <div className="space-y-6">
                             <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4 serif-font">Billing & Payments</h2>
-                            <div className="bg-stone-50 rounded-lg p-5 flex items-center gap-4">
-                                <span className="material-symbols-outlined text-3xl text-stone-400">credit_card</span>
-                                <div className="flex-1">
-                                    <h4 className="font-medium text-[var(--text-primary)]">No payment method added</h4>
-                                    <p className="text-xs text-stone-500">Add a payment method to make purchases and receive payouts.</p>
-                                </div>
-                                <Button variant="primary" className="text-sm">Add Method</Button>
-                            </div>
                             <div className="bg-stone-50 rounded-lg p-5">
                                 <h4 className="font-medium text-[var(--text-primary)] mb-3">Payout Details (for sellers)</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div><label className="text-sm font-medium text-stone-600 mb-1 block">Bank Name</label><input className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" placeholder="State Bank of India" /></div>
-                                    <div><label className="text-sm font-medium text-stone-600 mb-1 block">Account Number</label><input className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" placeholder="XXXX-XXXX-XXXX" /></div>
-                                    <div><label className="text-sm font-medium text-stone-600 mb-1 block">IFSC Code</label><input className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" placeholder="SBIN0XXXXXX" /></div>
-                                    <div><label className="text-sm font-medium text-stone-600 mb-1 block">UPI ID</label><input className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" placeholder="name@upi" /></div>
+                                    <div><label className="text-sm font-medium text-stone-600 mb-1 block">Bank Name</label><input name="payoutDetails.bankName" value={formData.payoutDetails?.bankName || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" placeholder="State Bank of India" /></div>
+                                    <div><label className="text-sm font-medium text-stone-600 mb-1 block">Account Number</label><input name="payoutDetails.accountNumber" value={formData.payoutDetails?.accountNumber || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" placeholder="XXXX-XXXX-XXXX" /></div>
+                                    <div><label className="text-sm font-medium text-stone-600 mb-1 block">IFSC Code</label><input name="payoutDetails.ifscCode" value={formData.payoutDetails?.ifscCode || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" placeholder="SBIN0XXXXXX" /></div>
+                                    <div><label className="text-sm font-medium text-stone-600 mb-1 block">UPI ID</label><input name="payoutDetails.upiId" value={formData.payoutDetails?.upiId || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm" placeholder="name@upi" /></div>
                                 </div>
-                                <Button variant="primary" className="text-sm mt-4 shadow-md">Save Payout Details</Button>
+                                <Button variant="primary" onClick={handleSave} disabled={saving} className="text-sm mt-4 shadow-md">{saving ? "Saving..." : "Save Payout Details"}</Button>
                             </div>
                         </div>
                     )}

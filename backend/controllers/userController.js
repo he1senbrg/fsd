@@ -193,7 +193,7 @@ exports.getSettings = catchAsync(async (req, res) => {
 // PUT /api/users/me/profile
 exports.updateProfile = catchAsync(async (req, res) => {
     const allowedFields = [
-        'fullName', 'bio', 'title', 'location', 'phone', 'primaryArtForm',
+        'fullName', 'email', 'role', 'verified', 'coverImage', 'bio', 'title', 'location', 'phone', 'primaryArtForm',
         'specializations', 'languages', 'education', 'pricing', 'socialLinks',
     ];
     const updates = {};

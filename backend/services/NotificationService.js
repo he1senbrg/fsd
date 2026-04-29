@@ -1,11 +1,20 @@
 const Notification = require('../models/Notification');
+const User = require('../models/User');
+
 let io;
 const setIO = (socketIO) => {
     io = socketIO;
 };
 
 // create notification and send it via socket.IO if user online
-const createNotification = async ({ user, type, message, relatedEntity }) => {
+const createNotification = async ({ user, type, message, relatedEntity, prefKey }) => {
+    if (prefKey) {
+        const u = await User.findById(user).select('notificationPrefs');
+        if (u && u.notificationPrefs && u.notificationPrefs[prefKey] === false) {
+            return null; // Skip if preference is explicitly false
+        }
+    }
+
     const notification = await Notification.create({
         user,
         type,
@@ -46,6 +55,7 @@ const notifyFollow = async (followeeId, followerId, followerName) => {
         type: 'follow',
         message: `${followerName} started following you`,
         relatedEntity: { entityType: 'User', entityId: followerId },
+        prefKey: 'newFollowers',
     });
 };
 
@@ -55,6 +65,7 @@ const notifyBooking = async (artistId, bookingDetails) => {
         type: 'booking',
         message: `New booking request: ${bookingDetails.serviceType}`,
         relatedEntity: { entityType: 'Order', entityId: bookingDetails.orderId },
+        prefKey: 'orderUpdates',
     });
 };
 
@@ -64,6 +75,7 @@ const notifyOrderUpdate = async (buyerId, orderId, newStatus) => {
         type: 'order',
         message: `Your order has been ${newStatus}`,
         relatedEntity: { entityType: 'Order', entityId: orderId },
+        prefKey: 'orderUpdates',
     });
 };
 

@@ -364,7 +364,7 @@ function ProfileContent() {
                             <h3 className="font-bold text-lg text-[var(--text-primary)] mb-3 serif-font">Availability & Pricing</h3>
                             <div className="space-y-2 text-sm text-[var(--text-secondary)]">
                                 {(u.pricing || []).map((p, i) => (
-                                    <div key={i} className="flex justify-between"><span>{p.label || p.type}:</span><span className="font-bold text-[var(--text-primary)]">₹ {p.amount?.toLocaleString() || p.price?.toLocaleString()}</span></div>
+                                    <div key={i} className="flex justify-between"><span>{p.service}:</span><span className="font-bold text-[var(--text-primary)]">₹ {p.amount?.toLocaleString() || p.price?.toLocaleString()}</span></div>
                                 ))}
                                 {(!u.pricing || u.pricing.length === 0) && <p className="text-stone-400">Pricing not listed.</p>}
                             </div>

@@ -97,7 +97,9 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/help', helpRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/payments', paymentRoutes);
+const artFormRoutes = require('./routes/artFormRoutes');
 app.use('/api/sponsor-tiers', sponsorRoutes);
+app.use('/api/art-forms', artFormRoutes);
 
 // 404
 app.use((req, res, next) => {
