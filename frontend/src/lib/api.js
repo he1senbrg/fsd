@@ -136,6 +136,9 @@ export const campaignAPI = {
             body: JSON.stringify({ amount, rewardTier }),
         }),
     getSponsorTiers: () => request('/campaigns/sponsor-tiers'),
+    createCampaign: (data) =>
+        request('/campaigns', { method: 'POST', body: JSON.stringify(data) }),
+    deleteCampaign: (id) => request(`/campaigns/${id}`, { method: 'DELETE' }),
 };
 
 export const orderAPI = {

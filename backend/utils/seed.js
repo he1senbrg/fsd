@@ -193,11 +193,6 @@ const seed = async () => {
             goalAmount: 500000, raisedAmount: 325000, backerCount: 142,
             deadline: new Date('2026-05-01'), duration: 45, status: 'active',
             coverImage: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800',
-            rewardTiers: [
-                { name: 'Rasa', amount: 500, perks: ['Thank you card', 'Name in credits'] },
-                { name: 'Kala', amount: 2000, perks: ['All Rasa perks', 'Handmade pottery piece'] },
-                { name: 'Guru', amount: 5000, perks: ['All Kala perks', 'Visit to workshop', 'Custom pottery set'] },
-            ],
             tags: ['pottery', 'heritage', 'rajasthan'],
         },
         {
@@ -207,10 +202,6 @@ const seed = async () => {
             goalAmount: 300000, raisedAmount: 180000, backerCount: 89,
             deadline: new Date('2026-04-15'), duration: 30, status: 'active',
             coverImage: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=800',
-            rewardTiers: [
-                { name: 'Rasa', amount: 500, perks: ['Thank you note'] },
-                { name: 'Kala', amount: 2000, perks: ['Handmade block print fabric'] },
-            ],
             tags: ['textiles', 'block-printing', 'artisans'],
         },
     ]);

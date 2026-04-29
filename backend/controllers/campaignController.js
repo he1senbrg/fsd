@@ -60,9 +60,18 @@ exports.getCampaign = catchAsync(async (req, res, next) => {
 
 exports.createCampaign = catchAsync(async (req, res) => {
     const deadline = new Date();
-    deadline.setDate(deadline.getDate() + (req.body.duration || 30));
-    const campaign = await Campaign.create({ ...req.body, creator: req.user._id, deadline });
+    deadline.setDate(deadline.getDate() + (Number(req.body.duration) || 30));
+    const { rewardTiers, ...rest } = req.body; // strip rewardTiers if accidentally sent
+    const campaign = await Campaign.create({ ...rest, creator: req.user._id, deadline });
     res.status(201).json({ status: 'success', data: { campaign } });
+});
+
+exports.deleteCampaign = catchAsync(async (req, res, next) => {
+    const campaign = await Campaign.findById(req.params.id);
+    if (!campaign) return next(new AppError('Campaign not found', 404));
+    if (campaign.creator.toString() !== req.user._id.toString()) return next(new AppError('Not authorized', 403));
+    await Campaign.findByIdAndDelete(req.params.id);
+    res.status(200).json({ status: 'success', message: 'Campaign deleted' });
 });
 
 exports.updateCampaign = catchAsync(async (req, res, next) => {

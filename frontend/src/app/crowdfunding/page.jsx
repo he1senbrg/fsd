@@ -1,6 +1,7 @@
 "use client";
 import AppShell from "@/components/AppShell";
 import { Button, EmptyState, Loader, PillTab } from "@/components/ui";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { campaignAPI, wishlistAPI } from "@/lib/api";
 import Image from "next/image";
@@ -10,6 +11,7 @@ import { useEffect, useState } from "react";
 
 export default function CrowdfundingPage() {
     const router = useRouter();
+    const { user } = useAuth();
     const [campaigns, setCampaigns] = useState([]);
     const [stats, setStats] = useState(null);
     const [sponsorTiers, setSponsorTiers] = useState([]);
@@ -58,6 +60,18 @@ export default function CrowdfundingPage() {
             // show toast
             showToast(`Sponsorship tier "${tier.name}" selected! Please choose a campaign to sponsor.`, "info");
         } catch (err) { if (err?.status !== 401) console.error(err); }
+    };
+
+    const handleDeleteCampaign = async (id) => {
+        if (!confirm('Are you sure you want to delete this campaign?')) return;
+        try {
+            await campaignAPI.deleteCampaign(id);
+            setCampaigns(prev => prev.filter(c => c._id !== id));
+            showToast('Campaign deleted successfully', 'success');
+        } catch (err) {
+            if (err?.status !== 401) console.error(err);
+            showToast('Failed to delete campaign', 'error');
+        }
     };
 
     const tabs = ["All Campaigns", "Almost Funded", "New Arrivals", "Music", "Visual Arts", "Textiles", "Heritage"];
@@ -158,7 +172,16 @@ export default function CrowdfundingPage() {
                         const goal = c.goalAmount || 1;
                         const percent = Math.round((raised / goal) * 100);
                         return (
-                            <div key={c._id || i} className="bg-white rounded-2xl overflow-hidden card-shadow hover:-translate-y-1 transition-transform duration-300 group">
+                            <div key={c._id || i} className="bg-white rounded-2xl overflow-hidden card-shadow hover:-translate-y-1 transition-transform duration-300 group relative">
+                                    {user && c.creator?._id === user._id && (
+                                        <button
+                                            onClick={() => handleDeleteCampaign(c._id)}
+                                            className="absolute top-4 right-4 z-20 bg-white/80 hover:bg-red-50 text-red-500 p-1.5 rounded-lg shadow-sm transition-colors backdrop-blur-sm border border-red-100 flex items-center justify-center leading-none"
+                                            title="Delete Campaign"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+                                    )}
                                 <div className="relative h-72 overflow-hidden">
                                     <Image
                                         alt={c.title}
@@ -226,12 +249,14 @@ export default function CrowdfundingPage() {
                     })}
                 </div>
 
-                <div className="text-center mb-12">
-                    <Link href="/crowdfunding/create" className="bg-[var(--primary-color)] text-white px-8 py-3 rounded-full font-bold hover:bg-[var(--secondary-color)] transition-colors shadow-lg inline-flex items-center gap-2">
-                        <span className="material-symbols-outlined">add_circle</span>
-                        Start Your Campaign
-                    </Link>
-                </div>
+                {user?.role === 'artist' && (
+                    <div className="text-center mb-12">
+                        <Link href="/crowdfunding/create" className="bg-[var(--primary-color)] text-white px-8 py-3 rounded-full font-bold hover:bg-[var(--secondary-color)] transition-colors shadow-lg inline-flex items-center gap-2">
+                            <span className="material-symbols-outlined">add_circle</span>
+                            Start Your Campaign
+                        </Link>
+                    </div>
+                )}
             </div>
         </AppShell>
     );
