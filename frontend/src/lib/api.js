@@ -84,6 +84,17 @@ export const productAPI = {
     },
     getFeatured: () => request('/products/featured'),
     getProduct: (id) => request(`/products/${id}`),
+    createProduct: (formData) =>
+        request('/products', { method: 'POST', body: formData }),
+    updateProduct: (id, formData) =>
+        request(`/products/${id}`, { method: 'PUT', body: formData }),
+    deleteProduct: (id) => request(`/products/${id}`, { method: 'DELETE' }),
+    getReviews: (id) => request(`/products/${id}/reviews`),
+    addReview: (id, rating, text) =>
+        request(`/products/${id}/reviews`, {
+            method: 'POST',
+            body: JSON.stringify({ rating, text }),
+        }),
 };
 
 export const eventAPI = {
