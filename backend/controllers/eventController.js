@@ -1,5 +1,6 @@
 const Event = require('../models/Event');
 const Order = require('../models/Order');
+const User = require('../models/User');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
 const { paginate, paginationMeta } = require('../utils/pagination');
@@ -36,6 +37,7 @@ exports.getEvent = catchAsync(async (req, res, next) => {
 
 exports.createEvent = catchAsync(async (req, res) => {
     const event = await Event.create({ ...req.body, organizer: req.user._id });
+    await User.findByIdAndUpdate(req.user._id, { $inc: { performanceCount: 1 } });
     res.status(201).json({ status: 'success', data: { event } });
 });
 

@@ -311,7 +311,7 @@ function ProfileContent() {
                         {/* stats */}
                         <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-6 grid grid-cols-3 gap-4 text-center">
                             <div><span className="text-2xl font-bold text-[var(--primary-color)] block">{u.followerCount ?? u.followersCount ?? u.stats?.followers ?? "0"}</span><span className="text-xs text-stone-500">Followers</span></div>
-                            <div><span className="text-2xl font-bold text-[var(--primary-color)] block">{u.performanceCount ?? u.performancesCount ?? u.stats?.performances ?? "0"}</span><span className="text-xs text-stone-500">Performances</span></div>
+                            <div><span className="text-2xl font-bold text-[var(--primary-color)] block">{u.performanceCount ?? u.performancesCount ?? u.stats?.performances ?? "0"}</span><span className="text-xs text-stone-500">Events</span></div>
                             <div><span className="text-2xl font-bold text-[var(--primary-color)] block">{u.rating ?? u.stats?.rating ?? "0"}</span><span className="text-xs text-stone-500">Rating</span></div>
                         </div>
 
