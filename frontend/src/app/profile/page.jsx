@@ -3,6 +3,7 @@ import AppShell from "@/components/AppShell";
 import VideoPlayer from "@/components/VideoPlayer";
 import { Button, EmptyState, Loader, PillTab } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
+import { useToast } from "@/context/ToastContext";
 import { conversationAPI, postAPI, userAPI } from "@/lib/api";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,6 +11,7 @@ import { Suspense, useEffect, useState } from "react";
 
 function ProfileContent() {
     const { user: authUser } = useAuth();
+    const showToast = useToast();
     const router = useRouter();
     const searchParams = useSearchParams();
     const paramId = searchParams.get("id");
@@ -178,8 +180,21 @@ function ProfileContent() {
 
     const sharePost = async (postId) => {
         try {
-            await postAPI.sharePost(postId);
+            const postUrl = `${window.location.origin}/feed?post=${postId}`;
+            await Promise.all([
+                postAPI.sharePost(postId),
+                navigator.clipboard.writeText(postUrl),
+            ]);
             setSharedPosts(prev => new Set([...prev, postId]));
+            setTimeout(() => {
+                setSharedPosts(prev => {
+                    const next = new Set(prev);
+                    next.delete(postId);
+                    return next;
+                });
+            }, 5000);
+            setPortfolio(prev => prev.map(p => p._id === postId ? { ...p, shareCount: (p.shareCount || 0) + 1 } : p));
+            showToast("Post link copied!", "success");
         } catch (e) { if (e?.status !== 401) console.error(e); }
     };
 
@@ -191,7 +206,6 @@ function ProfileContent() {
         } catch (e) { if (e?.status !== 401) console.error(e); }
     };
 
-    const handleSavePost = (postId) => { setOpenMenuId(null); postAPI.savePost(postId).catch(() => {}); };
     const handleCopyLink = (postId) => { setOpenMenuId(null); navigator.clipboard.writeText(`${window.location.origin}/feed?post=${postId}`); };
 
     const openLightbox = (images, index) => setLightbox({ images, index });
@@ -433,9 +447,6 @@ function ProfileContent() {
                                                         <Button onClick={() => handleCopyLink(post._id)} className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-stone-50 text-stone-700">
                                                             <span className="material-symbols-outlined text-base">link</span>Copy Link
                                                         </Button>
-                                                        <Button onClick={() => handleSavePost(post._id)} className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-stone-50 text-stone-700">
-                                                            <span className="material-symbols-outlined text-base">bookmark</span>Save Post
-                                                        </Button>
                                                         {isOwnProfile && (
                                                             <Button onClick={() => handleDeletePost(post._id)} className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-red-50 text-red-500 border-t border-stone-100">
                                                                 <span className="material-symbols-outlined text-base">delete</span>Delete Post
@@ -525,12 +536,10 @@ function ProfileContent() {
                                                 </Button>
                                                 <Button onClick={() => sharePost(post._id)} className={`flex items-center gap-1.5 transition-colors ${sharedPosts.has(post._id) ? "text-green-600" : "text-stone-600 hover:text-[var(--secondary-color)]"}`}>
                                                     <span className="material-symbols-outlined">share</span>
+                                                    <span className="text-sm font-medium">{(post.shareCount ?? 0).toLocaleString()}</span>
                                                     {sharedPosts.has(post._id) && <span className="text-xs">Shared!</span>}
                                                 </Button>
                                             </div>
-                                            <Button onClick={() => router.push('/crowdfunding')} className="flex items-center gap-1.5 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm font-semibold hover:bg-green-100 transition-colors border border-green-200">
-                                                <span className="material-symbols-outlined text-lg filled">volunteer_activism</span> Support
-                                            </Button>
                                         </div>
                                         {/* comments */}
                                         {expandedComments.has(post._id) && (

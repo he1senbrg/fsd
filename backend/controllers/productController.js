@@ -1,12 +1,12 @@
 const Product = require('../models/Product');
+const ProductReview = require('../models/ProductReview');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 const { uploadBuffer } = require('../utils/blobStorage');
 
 // GET /api/products (list with filters)
 exports.getProducts = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
     const filter = { isActive: true };
 
     if (req.query.category) filter.category = req.query.category;
@@ -36,19 +36,13 @@ exports.getProducts = catchAsync(async (req, res) => {
             break;
     }
 
-    const [products, total] = await Promise.all([
-        Product.find(filter)
-            .populate('seller', 'fullName avatar location')
-            .sort(sort)
-            .skip(skip)
-            .limit(limit),
-        Product.countDocuments(filter),
-    ]);
+    const products = await Product.find(filter)
+        .populate('seller', 'fullName avatar location')
+        .sort(sort);
 
     res.status(200).json({
         status: 'success',
         data: { products },
-        pagination: paginationMeta(total, page, limit),
     });
 });
 
@@ -123,7 +117,19 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
         return next(new AppError('You can only update your own products', 403));
     }
 
-    const updated = await Product.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = { ...req.body };
+
+    // upload new images if provided
+    if (req.files && req.files.length > 0) {
+        const newImages = [];
+        for (const file of req.files) {
+            const result = await uploadBuffer(file.buffer, file.mimetype, 'products');
+            newImages.push(result.url);
+        }
+        updateData.images = newImages;
+    }
+
+    const updated = await Product.findByIdAndUpdate(req.params.id, updateData, {
         new: true,
         runValidators: true,
     });
@@ -133,6 +139,7 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
         data: { product: updated },
     });
 });
+
 
 // DELETE /api/products/:id
 exports.deleteProduct = catchAsync(async (req, res, next) => {
@@ -150,6 +157,52 @@ exports.deleteProduct = catchAsync(async (req, res, next) => {
     res.status(200).json({
         status: 'success',
         message: 'Product removed',
+    });
+});
+
+// GET /api/products/:id/reviews
+exports.getProductReviews = catchAsync(async (req, res) => {
+    const reviews = await ProductReview.find({ product: req.params.id })
+        .populate('reviewer', 'fullName avatar')
+        .sort({ createdAt: -1 });
+
+    res.status(200).json({
+        status: 'success',
+        data: { reviews },
+    });
+});
+
+// POST /api/products/:id/reviews
+exports.addProductReview = catchAsync(async (req, res, next) => {
+    const product = await Product.findById(req.params.id);
+    if (!product) return next(new AppError('Product not found', 404));
+
+    const existing = await ProductReview.findOne({ product: req.params.id, reviewer: req.user._id });
+    if (existing) return next(new AppError('You have already reviewed this product', 400));
+
+    const { rating, text } = req.body;
+    if (!rating || rating < 1 || rating > 5) return next(new AppError('Rating must be between 1 and 5', 400));
+
+    const review = await ProductReview.create({
+        product: req.params.id,
+        reviewer: req.user._id,
+        rating: Number(rating),
+        text: text || '',
+    });
+
+    // recalculate avg rating
+    const all = await ProductReview.find({ product: req.params.id });
+    const avg = all.reduce((s, r) => s + r.rating, 0) / all.length;
+    await Product.findByIdAndUpdate(req.params.id, {
+        rating: Math.round(avg * 10) / 10,
+        reviewCount: all.length,
+    });
+
+    await review.populate('reviewer', 'fullName avatar');
+
+    res.status(201).json({
+        status: 'success',
+        data: { review },
     });
 });
 

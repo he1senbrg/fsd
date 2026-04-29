@@ -3,13 +3,12 @@ const AvailabilitySlot = require('../models/AvailabilitySlot');
 const Order = require('../models/Order');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 const PaymentService = require('../services/PaymentService');
 const { generateOrderId } = require('../utils/helpers');
 const NotificationService = require('../services/NotificationService');
 
 exports.getArtists = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
     const filter = { role: 'artist' };
     if (req.query.artForm) filter.primaryArtForm = { $regex: req.query.artForm, $options: 'i' };
     if (req.query.location) filter.location = { $regex: req.query.location, $options: 'i' };
@@ -21,12 +20,9 @@ exports.getArtists = catchAsync(async (req, res) => {
     if (req.query.sort === 'rating') sort = { rating: -1 };
     if (req.query.sort === 'popular') sort = { followerCount: -1 };
 
-    const [artists, total] = await Promise.all([
-        User.find(filter).select('fullName avatar title location primaryArtForm specializations rating reviewCount verified followerCount pricing')
-            .sort(sort).skip(skip).limit(limit),
-        User.countDocuments(filter),
-    ]);
-    res.status(200).json({ status: 'success', data: { artists }, pagination: paginationMeta(total, page, limit) });
+    const artists = await User.find(filter).select('fullName avatar title location primaryArtForm specializations rating reviewCount verified followerCount pricing')
+        .sort(sort);
+    res.status(200).json({ status: 'success', data: { artists } });
 });
 
 exports.getFeaturedArtists = catchAsync(async (req, res) => {

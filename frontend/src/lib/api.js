@@ -71,10 +71,6 @@ export const postAPI = {
         request(`/posts/${id}`, { method: 'DELETE' }),
     updatePost: (id, data) =>
         request(`/posts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    reportPost: (id, reason = '') =>
-        request(`/posts/${id}/report`, { method: 'POST', body: JSON.stringify({ reason }) }),
-    savePost: (id) =>
-        request(`/posts/${id}/save`, { method: 'POST' }),
 };
 
 export const productAPI = {
@@ -84,6 +80,17 @@ export const productAPI = {
     },
     getFeatured: () => request('/products/featured'),
     getProduct: (id) => request(`/products/${id}`),
+    createProduct: (formData) =>
+        request('/products', { method: 'POST', body: formData }),
+    updateProduct: (id, formData) =>
+        request(`/products/${id}`, { method: 'PUT', body: formData }),
+    deleteProduct: (id) => request(`/products/${id}`, { method: 'DELETE' }),
+    getReviews: (id) => request(`/products/${id}/reviews`),
+    addReview: (id, rating, text) =>
+        request(`/products/${id}/reviews`, {
+            method: 'POST',
+            body: JSON.stringify({ rating, text }),
+        }),
 };
 
 export const eventAPI = {
@@ -101,6 +108,7 @@ export const eventAPI = {
     rsvpEvent: (id) => request(`/events/${id}/rsvp`, { method: 'POST' }),
     createEvent: (data) =>
         request(`/events`, { method: 'POST', body: JSON.stringify(data) }),
+    deleteEvent: (id) => request(`/events/${id}`, { method: 'DELETE' }),
 };
 
 export const opportunityAPI = {
@@ -116,6 +124,9 @@ export const opportunityAPI = {
         }),
     toggleBookmark: (id) =>
         request(`/opportunities/${id}/bookmark`, { method: 'POST' }),
+    createOpportunity: (data) =>
+        request('/opportunities', { method: 'POST', body: JSON.stringify(data) }),
+    deleteOpportunity: (id) => request(`/opportunities/${id}`, { method: 'DELETE' }),
 };
 
 export const campaignAPI = {
@@ -132,6 +143,9 @@ export const campaignAPI = {
             body: JSON.stringify({ amount, rewardTier }),
         }),
     getSponsorTiers: () => request('/campaigns/sponsor-tiers'),
+    createCampaign: (data) =>
+        request('/campaigns', { method: 'POST', body: JSON.stringify(data) }),
+    deleteCampaign: (id) => request(`/campaigns/${id}`, { method: 'DELETE' }),
 };
 
 export const orderAPI = {

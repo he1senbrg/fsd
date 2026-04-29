@@ -9,8 +9,10 @@ router.get('/', ctrl.getProducts);
 router.get('/featured', ctrl.getFeaturedProducts);
 router.get('/collections/:slug', ctrl.getCollection);
 router.get('/:id', ctrl.getProduct);
+router.get('/:id/reviews', ctrl.getProductReviews);
 router.post('/', authenticate, uploadProductImages, createProductValidator, validate, ctrl.createProduct);
-router.put('/:id', authenticate, updateProductValidator, validate, ctrl.updateProduct);
+router.post('/:id/reviews', authenticate, ctrl.addProductReview);
+router.put('/:id', authenticate, uploadProductImages, updateProductValidator, validate, ctrl.updateProduct);
 router.delete('/:id', authenticate, ctrl.deleteProduct);
 
 module.exports = router;

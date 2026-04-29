@@ -11,6 +11,7 @@ router.get('/sponsor-tiers', ctrl.getSponsorTiers);
 router.get('/:id', ctrl.getCampaign);
 router.post('/', authenticate, createCampaignValidator, validate, ctrl.createCampaign);
 router.put('/:id', authenticate, ctrl.updateCampaign);
+router.delete('/:id', authenticate, ctrl.deleteCampaign);
 router.post('/:id/publish', authenticate, ctrl.publishCampaign);
 router.post('/:id/back', authenticate, ctrl.backCampaign);
 router.get('/:id/backers', authenticate, ctrl.getBackers);

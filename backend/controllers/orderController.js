@@ -3,24 +3,20 @@ const Review = require('../models/Review');
 const User = require('../models/User');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 const NotificationService = require('../services/NotificationService');
 
 exports.getOrders = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
     const filter = { buyer: req.user._id };
     if (req.query.type) filter.orderType = req.query.type;
 
-    const [orders, total] = await Promise.all([
-        Order.find(filter)
-            .populate('items.product', 'name images')
-            .populate('event', 'title startDate venue')
-            .populate('campaign', 'title coverImage')
-            .populate('seller', 'fullName')
-            .sort({ createdAt: -1 }).skip(skip).limit(limit),
-        Order.countDocuments(filter),
-    ]);
-    res.status(200).json({ status: 'success', data: { orders }, pagination: paginationMeta(total, page, limit) });
+    const orders = await Order.find(filter)
+        .populate('items.product', 'name images')
+        .populate('event', 'title startDate venue')
+        .populate('campaign', 'title coverImage')
+        .populate('seller', 'fullName')
+        .sort({ createdAt: -1 });
+    res.status(200).json({ status: 'success', data: { orders } });
 });
 
 exports.getOrder = catchAsync(async (req, res, next) => {

@@ -3,11 +3,10 @@ const Application = require('../models/Application');
 const Bookmark = require('../models/Bookmark');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 const NotificationService = require('../services/NotificationService');
 
 exports.getOpportunities = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
     const filter = {};
     if (req.query.type) filter.type = req.query.type;
     if (req.query.artForm) filter.artForm = { $regex: req.query.artForm, $options: 'i' };
@@ -29,11 +28,8 @@ exports.getOpportunities = catchAsync(async (req, res) => {
     if (req.query.sort === 'deadline') sort = { deadline: 1 };
     if (req.query.sort === 'payHigh') sort = { 'payAmount.max': -1 };
 
-    const [opps, total] = await Promise.all([
-        Opportunity.find(filter).populate('organizer', 'fullName avatar').sort(sort).skip(skip).limit(limit),
-        Opportunity.countDocuments(filter),
-    ]);
-    res.status(200).json({ status: 'success', data: { opportunities: opps }, pagination: paginationMeta(total, page, limit) });
+    const opps = await Opportunity.find(filter).populate('organizer', 'fullName avatar').sort(sort);
+    res.status(200).json({ status: 'success', data: { opportunities: opps } });
 });
 
 exports.getTrendingOpportunities = catchAsync(async (req, res) => {
@@ -112,12 +108,8 @@ exports.updateApplicationStatus = catchAsync(async (req, res, next) => {
 });
 
 exports.getMyApplications = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
-    const [apps, total] = await Promise.all([
-        Application.find({ applicant: req.user._id }).populate('opportunity').sort({ createdAt: -1 }).skip(skip).limit(limit),
-        Application.countDocuments({ applicant: req.user._id }),
-    ]);
-    res.status(200).json({ status: 'success', data: { applications: apps }, pagination: paginationMeta(total, page, limit) });
+    const apps = await Application.find({ applicant: req.user._id }).populate('opportunity').sort({ createdAt: -1 });
+    res.status(200).json({ status: 'success', data: { applications: apps } });
 });
 
 exports.toggleBookmark = catchAsync(async (req, res, next) => {

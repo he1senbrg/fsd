@@ -1,7 +1,7 @@
 const { Conversation, Message } = require('../models/Conversation');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 
 exports.getConversations = catchAsync(async (req, res) => {
     const filter = { participants: req.user._id };
@@ -63,24 +63,19 @@ exports.createConversation = catchAsync(async (req, res, next) => {
 });
 
 exports.getMessages = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
     const conv = await Conversation.findById(req.params.id);
     if (!conv) return res.status(404).json({ status: 'fail', message: 'Conversation not found' });
     if (!conv.participants.includes(req.user._id)) {
         return res.status(403).json({ status: 'fail', message: 'Not a participant' });
     }
 
-    const [messages, total] = await Promise.all([
-        Message.find({ conversation: req.params.id })
-            .populate('sender', 'fullName avatar')
-            .sort({ createdAt: -1 }).skip(skip).limit(limit),
-        Message.countDocuments({ conversation: req.params.id }),
-    ]);
+    const messages = await Message.find({ conversation: req.params.id })
+        .populate('sender', 'fullName avatar')
+        .sort({ createdAt: -1 });
 
     res.status(200).json({
         status: 'success',
         data: { messages: messages.reverse() },
-        pagination: paginationMeta(total, page, limit),
     });
 });
 

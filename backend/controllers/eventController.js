@@ -3,12 +3,11 @@ const Order = require('../models/Order');
 const User = require('../models/User');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 const PaymentService = require('../services/PaymentService');
 const { generateOrderId } = require('../utils/helpers');
 
 exports.getEvents = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
     const filter = { status: { $in: ['published', 'completed'] } };
     if (req.query.category) filter.category = req.query.category;
     if (req.query.artForm) filter.artForm = { $regex: req.query.artForm, $options: 'i' };
@@ -16,11 +15,8 @@ exports.getEvents = catchAsync(async (req, res) => {
     if (req.query.location) filter.venue = { $regex: req.query.location, $options: 'i' };
     if (req.query.q) filter.$text = { $search: req.query.q };
 
-    const [events, total] = await Promise.all([
-        Event.find(filter).populate('organizer', 'fullName avatar').sort({ startDate: 1 }).skip(skip).limit(limit),
-        Event.countDocuments(filter),
-    ]);
-    res.status(200).json({ status: 'success', data: { events }, pagination: paginationMeta(total, page, limit) });
+    const events = await Event.find(filter).populate('organizer', 'fullName avatar').sort({ startDate: 1 });
+    res.status(200).json({ status: 'success', data: { events } });
 });
 
 exports.getUpcomingEvents = catchAsync(async (req, res) => {

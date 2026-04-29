@@ -1,6 +1,7 @@
 "use client";
 import AppShell from "@/components/AppShell";
 import { Button, EmptyState, Loader, PillTab } from "@/components/ui";
+import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { campaignAPI, wishlistAPI } from "@/lib/api";
 import Image from "next/image";
@@ -10,6 +11,7 @@ import { useEffect, useState } from "react";
 
 export default function CrowdfundingPage() {
     const router = useRouter();
+    const { user } = useAuth();
     const [campaigns, setCampaigns] = useState([]);
     const [stats, setStats] = useState(null);
     const [sponsorTiers, setSponsorTiers] = useState([]);
@@ -58,6 +60,18 @@ export default function CrowdfundingPage() {
             // show toast
             showToast(`Sponsorship tier "${tier.name}" selected! Please choose a campaign to sponsor.`, "info");
         } catch (err) { if (err?.status !== 401) console.error(err); }
+    };
+
+    const handleDeleteCampaign = async (id) => {
+        if (!confirm('Are you sure you want to delete this campaign?')) return;
+        try {
+            await campaignAPI.deleteCampaign(id);
+            setCampaigns(prev => prev.filter(c => c._id !== id));
+            showToast('Campaign deleted successfully', 'success');
+        } catch (err) {
+            if (err?.status !== 401) console.error(err);
+            showToast('Failed to delete campaign', 'error');
+        }
     };
 
     const tabs = ["All Campaigns", "Almost Funded", "New Arrivals", "Music", "Visual Arts", "Textiles", "Heritage"];
@@ -144,8 +158,8 @@ export default function CrowdfundingPage() {
                     {[...campaigns].sort((a, b) => activeTab === "New Arrivals" ? new Date(b.createdAt) - new Date(a.createdAt) : 0).filter(c => {
                         if (activeTab === "All Campaigns") return true;
 
-                        const raised = c.raisedAmount || c.raised || c.currentAmount || 0;
-                        const goal = c.goalAmount || c.goal || 1;
+                        const raised = c.raisedAmount || 0;
+                        const goal = c.goalAmount || 1;
                         const percent = Math.round((raised / goal) * 100);
 
                         if (activeTab === "Almost Funded") return percent >= 75 && percent < 100;
@@ -154,11 +168,20 @@ export default function CrowdfundingPage() {
                         const mappedCategory = tabCategoryMap[activeTab];
                         return mappedCategory ? c.category === mappedCategory : false;
                     }).map((c, i) => {
-                        const raised = c.raised || c.currentAmount || 0;
-                        const goal = c.goal || 1;
+                        const raised = c.raisedAmount || c.currentAmount || 0;
+                        const goal = c.goalAmount || 1;
                         const percent = Math.round((raised / goal) * 100);
                         return (
-                            <div key={c._id || i} className="bg-white rounded-2xl overflow-hidden card-shadow hover:-translate-y-1 transition-transform duration-300 group">
+                            <div key={c._id || i} className="bg-white rounded-2xl overflow-hidden card-shadow hover:-translate-y-1 transition-transform duration-300 group relative">
+                                    {user && c.creator?._id === user._id && (
+                                        <button
+                                            onClick={() => handleDeleteCampaign(c._id)}
+                                            className="absolute top-4 right-4 z-20 bg-white/80 hover:bg-red-50 text-red-500 p-1.5 rounded-lg shadow-sm transition-colors backdrop-blur-sm border border-red-100 flex items-center justify-center leading-none"
+                                            title="Delete Campaign"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+                                    )}
                                 <div className="relative h-72 overflow-hidden">
                                     <Image
                                         alt={c.title}
@@ -171,9 +194,6 @@ export default function CrowdfundingPage() {
                                     <div className="absolute bottom-4 left-4 flex gap-2">
                                         {(c.tags || c.categories || []).map((tag, j) => (<span key={j} className="bg-white/90 backdrop-blur-sm text-[var(--text-primary)] text-xs px-2 py-1 rounded-full font-medium">{tag}</span>))}
                                     </div>
-                                    <Button onClick={(e) => toggleCampaignWishlist(e, c._id)} className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2 rounded-full transition-colors shadow-sm">
-                                        <span className={`material-symbols-outlined text-xl ${wishlistedCampaigns.has(c._id) ? 'text-red-500' : 'text-stone-500 hover:text-red-500'}`}>favorite</span>
-                                    </Button>
                                 </div>
                                 <div className="p-6">
                                     <div className="flex items-center gap-2 mb-2">
@@ -229,41 +249,14 @@ export default function CrowdfundingPage() {
                     })}
                 </div>
 
-                {/* sponsor tiers */}
-                <section className="mb-16">
-                    <div className="text-center mb-10">
-                        <h2 className="text-3xl font-bold text-[var(--text-primary)] font-display">Become a Sponsor</h2>
-                        <p className="text-[var(--text-secondary)] mt-2">Choose a tier to support artists and receive exclusive perks.</p>
+                {user?.role === 'artist' && (
+                    <div className="text-center mb-12">
+                        <Link href="/crowdfunding/create" className="bg-[var(--primary-color)] text-white px-8 py-3 rounded-full font-bold hover:bg-[var(--secondary-color)] transition-colors shadow-lg inline-flex items-center gap-2">
+                            <span className="material-symbols-outlined">add_circle</span>
+                            Start Your Campaign
+                        </Link>
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                        {sponsorTiers.map((tier, i) => (
-                            <div key={i} className={`bg-white rounded-xl p-8 border-2 transition-all hover:-translate-y-1 ${i === 1 ? "border-[var(--primary-color)] shadow-xl relative" : "border-stone-200 card-shadow"}`}>
-                                {i === 1 && <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[var(--primary-color)] text-white text-xs px-3 py-1 rounded-full font-bold">Most Popular</span>}
-                                <span className="material-symbols-outlined text-4xl text-[var(--secondary-color)] mb-4 block">{tierIcons[i] || "star"}</span>
-                                <h3 className="text-xl font-bold text-[var(--text-primary)] font-display">{tier.name}</h3>
-                                <p className="text-3xl font-bold text-[var(--primary-color)] my-4">₹ {tier.amount?.toLocaleString()}<span className="text-sm text-stone-500 font-normal"> / campaign</span></p>
-                                <ul className="space-y-2 text-sm text-[var(--text-secondary)] mb-6">
-                                    {(tier.perks || tier.benefits || []).map((perk, j) => (
-                                        <li key={j} className="flex items-center gap-2">
-                                            <span className="material-symbols-outlined text-green-500 text-sm">check_circle</span>
-                                            {perk}
-                                        </li>
-                                    ))}
-                                </ul>
-                                    <Button variant={i === 1 ? "primary" : "outline"} onClick={() => chooseTier(tier)} className="w-full py-3 rounded-lg font-bold transition-colors">
-                                    Choose {tier.name}
-                                </Button>
-                            </div>
-                        ))}
-                    </div>
-                </section>
-
-                <div className="text-center mb-12">
-                    <Link href="/crowdfunding/create" className="bg-[var(--primary-color)] text-white px-8 py-3 rounded-full font-bold hover:bg-[var(--secondary-color)] transition-colors shadow-lg inline-flex items-center gap-2">
-                        <span className="material-symbols-outlined">add_circle</span>
-                        Start Your Campaign
-                    </Link>
-                </div>
+                )}
             </div>
         </AppShell>
     );

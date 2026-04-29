@@ -19,13 +19,7 @@ const campaignSchema = new mongoose.Schema(
         duration: { type: Number, enum: [15, 30, 45, 60] },
         coverImage: { type: String, default: '' },
         videoUrl: { type: String, default: '' },
-        rewardTiers: [
-            {
-                name: { type: String },
-                amount: { type: Number },
-                perks: [{ type: String }],
-            },
-        ],
+
         tags: [{ type: String }],
         status: {
             type: String,
