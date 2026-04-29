@@ -227,9 +227,13 @@ function ProfileContent() {
                 {/* Cover, photo */}
                 <div className="mb-8">
                     <div className="relative rounded-2xl overflow-hidden shadow-lg">
-                        {/* gradient */}
+                        {/* cover image / gradient */}
                         <div className="h-36 sm:h-48 md:h-72 bg-gradient-to-r from-[var(--deep-teal)] via-[var(--primary-color)] to-[var(--secondary-color)] relative overflow-hidden">
-                            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                            {u.coverImage ? (
+                                <Image src={u.coverImage} alt="Cover" className="w-full h-full object-cover" width={1200} height={400} unoptimized />
+                            ) : (
+                                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+                            )}
                         </div>
                         {/* desktop part (hidden mobile) */}
                         <div className="absolute bottom-0 left-0 right-0 px-8 py-6 bg-gradient-to-t from-black/50 to-transparent hidden md:flex items-end gap-6">
