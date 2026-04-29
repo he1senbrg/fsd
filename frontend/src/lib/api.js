@@ -101,6 +101,7 @@ export const eventAPI = {
     rsvpEvent: (id) => request(`/events/${id}/rsvp`, { method: 'POST' }),
     createEvent: (data) =>
         request(`/events`, { method: 'POST', body: JSON.stringify(data) }),
+    deleteEvent: (id) => request(`/events/${id}`, { method: 'DELETE' }),
 };
 
 export const opportunityAPI = {
@@ -116,6 +117,9 @@ export const opportunityAPI = {
         }),
     toggleBookmark: (id) =>
         request(`/opportunities/${id}/bookmark`, { method: 'POST' }),
+    createOpportunity: (data) =>
+        request('/opportunities', { method: 'POST', body: JSON.stringify(data) }),
+    deleteOpportunity: (id) => request(`/opportunities/${id}`, { method: 'DELETE' }),
 };
 
 export const campaignAPI = {

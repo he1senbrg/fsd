@@ -314,7 +314,6 @@ export default function FeedPage() {
                             <div className="flex gap-3 sm:gap-4">
                                 <Button onClick={() => photoInputRef.current?.click()} className="flex items-center gap-1 sm:gap-2 text-stone-500 hover:text-[var(--secondary-color)] text-sm"><span className="material-symbols-outlined text-xl">image</span> Photo</Button>
                                 <Button onClick={() => videoInputRef.current?.click()} className="flex items-center gap-1 sm:gap-2 text-stone-500 hover:text-[var(--secondary-color)] text-sm"><span className="material-symbols-outlined text-xl">movie</span> Video</Button>
-                                <Button onClick={() => router.push('/opportunities')} className="flex items-center gap-1 sm:gap-2 text-stone-500 hover:text-[var(--secondary-color)] text-sm"><span className="material-symbols-outlined text-xl">calendar_month</span> Event</Button>
                             </div>
                             <Button
                                 onClick={handleCreatePost}
@@ -557,8 +556,8 @@ export default function FeedPage() {
                         </div>
                         <div className="space-y-4">
                             {campaigns.map((c, i) => {
-                                const percent = c.goal ? Math.round(((c.raised || c.currentAmount || 0) / c.goal) * 100) : 0;
-                                const raised = c.raised || c.currentAmount || 0;
+                                const percent = c.goalAmount ? Math.round(((c.raisedAmount || c.currentAmount || 0) / c.goalAmount) * 100) : 0;
+                                const raised = c.raisedAmount || c.currentAmount || 0;
                                 return (
                                     <div key={c._id || i} className="flex gap-3 items-start">
                                         <Image className="w-12 h-12 rounded-lg object-cover bg-stone-200" src={c.img || c.image || c.coverImage || "/placeholder.png"} alt={c.title} width={48} height={48} unoptimized />
