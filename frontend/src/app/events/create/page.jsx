@@ -5,12 +5,14 @@ import { useToast } from "@/context/ToastContext";
 import { eventAPI, mediaAPI } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { useArtForms } from "@/context/ArtFormContext";
 
 export default function EventCreatePage() {
     const [step, setStep] = useState(1);
+    const { artForms } = useArtForms();
     const [title, setTitle] = useState("");
     const [category, setCategory] = useState("performance");
-    const [artForm, setArtForm] = useState("Classical Music");
+    const [artForm, setArtForm] = useState("");
     const [description, setDescription] = useState("");
     const [startDate, setStartDate] = useState("");
     const [endDate, setEndDate] = useState("");
@@ -75,7 +77,10 @@ export default function EventCreatePage() {
                                 <div>
                                     <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Art Form *</label>
                                     <FormSelect value={artForm} onChange={(e) => setArtForm(e.target.value)}>
-                                        <option value="Classical Music">Classical Music</option><option value="Folk Dance">Folk Dance</option><option value="Painting">Painting</option><option value="Pottery">Pottery</option><option value="Theatre">Theatre</option>
+                                        <option value="">Select Art Form</option>
+                                        {artForms.map(form => (
+                                            <option key={form} value={form}>{form}</option>
+                                        ))}
                                     </FormSelect>
                                 </div>
                             </div>
@@ -193,6 +198,7 @@ export default function EventCreatePage() {
                         ) : (
                             <Button onClick={async () => {
                                 if (!title.trim()) { showToast('Please enter an event title.', 'warning'); return; }
+                                if (!artForm) { showToast('Please select an art form.', 'warning'); return; }
                                 if (!startDate) { showToast('Please enter a start date.', 'warning'); return; }
                                 if (!endDate) { showToast('Please enter an end date.', 'warning'); return; }
                                 if (!venue.trim()) { showToast('Please enter a venue.', 'warning'); return; }

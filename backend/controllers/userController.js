@@ -66,6 +66,43 @@ exports.getUserReviews = catchAsync(async (req, res) => {
     });
 });
 
+// POST /api/users/:id/reviews
+exports.addReview = catchAsync(async (req, res, next) => {
+    const targetId = req.params.id;
+    const reviewerId = req.user._id;
+
+    if (targetId === reviewerId.toString()) {
+        return next(new AppError('You cannot review yourself', 400));
+    }
+
+    const { rating, text } = req.body;
+    if (!rating || rating < 1 || rating > 5) {
+        return next(new AppError('Please provide a valid rating between 1 and 5', 400));
+    }
+
+    const targetUser = await User.findById(targetId);
+    if (!targetUser) {
+        return next(new AppError('User not found', 404));
+    }
+
+    const review = await Review.findOneAndUpdate(
+        { reviewer: reviewerId, target: targetId },
+        { rating, text },
+        { new: true, upsert: true, runValidators: true }
+    );
+
+    const allReviews = await Review.find({ target: targetId });
+    const totalRating = allReviews.reduce((sum, rev) => sum + rev.rating, 0);
+    const avgRating = totalRating / allReviews.length;
+
+    targetUser.rating = avgRating.toFixed(1);
+    targetUser.reviewCount = allReviews.length;
+    await targetUser.save({ validateBeforeSave: false });
+
+    const populatedReview = await Review.findById(review._id).populate('reviewer', 'fullName avatar');
+    res.status(200).json({ status: 'success', data: { review: populatedReview } });
+});
+
 // POST /api/users/:id/follow (follow/unfollow)
 exports.toggleFollow = catchAsync(async (req, res, next) => {
     const followeeId = req.params.id;
@@ -156,7 +193,7 @@ exports.getSettings = catchAsync(async (req, res) => {
 // PUT /api/users/me/profile
 exports.updateProfile = catchAsync(async (req, res) => {
     const allowedFields = [
-        'fullName', 'bio', 'title', 'location', 'phone', 'primaryArtForm',
+        'fullName', 'email', 'role', 'verified', 'coverImage', 'bio', 'title', 'location', 'phone', 'primaryArtForm',
         'specializations', 'languages', 'education', 'pricing', 'socialLinks',
     ];
     const updates = {};

@@ -170,7 +170,6 @@ function MessagesContent() {
                         <div className="p-4 border-b border-stone-100">
                             <div className="flex items-center gap-2 mb-3">
                                 <h2 className="font-bold text-lg text-[var(--text-primary)] serif-font flex-1">Messages</h2>
-                                <Button className="text-stone-400 hover:text-[var(--primary-color)]"><span className="material-symbols-outlined">edit_square</span></Button>
                             </div>
                             <div className="relative">
                                 <span className="material-symbols-outlined absolute left-3 top-2 text-stone-400 text-lg">search</span>
@@ -220,9 +219,6 @@ function MessagesContent() {
                                 <h3 className="font-bold text-[var(--text-primary)] truncate">{currentOther.name}</h3>
                                 <p className="text-xs text-green-500">Online</p>
                             </div>
-                            <div className="flex gap-1 sm:gap-2">
-                                <Button className="p-2 text-stone-400 hover:text-[var(--primary-color)] rounded-lg hover:bg-stone-50"><span className="material-symbols-outlined">more_vert</span></Button>
-                            </div>
                         </div>
                         <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-4 bg-stone-50">
                             {chatMessages.length === 0 && (
@@ -244,7 +240,6 @@ function MessagesContent() {
                             <div ref={bottomRef} />
                         </div>
                         <div className="p-3 border-t border-stone-100 flex items-center gap-2 sm:gap-3">
-                            <Button className="text-stone-400 hover:text-[var(--primary-color)] flex-shrink-0"><span className="material-symbols-outlined">attach_file</span></Button>
                             <input
                                 className="flex-1 min-w-0 bg-stone-50 border-none rounded-full py-2.5 px-4 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]"
                                 placeholder="Type a message..."
