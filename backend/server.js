@@ -35,6 +35,7 @@ const helpRoutes = require('./routes/helpRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const sponsorRoutes = require('./routes/sponsorRoutes');
+const artFormRoutes = require('./routes/artFormRoutes');
 
 // init express
 const app = express();
@@ -97,7 +98,6 @@ app.use('/api/media', mediaRoutes);
 app.use('/api/help', helpRoutes);
 app.use('/api/newsletter', newsletterRoutes);
 app.use('/api/payments', paymentRoutes);
-const artFormRoutes = require('./routes/artFormRoutes');
 app.use('/api/sponsor-tiers', sponsorRoutes);
 app.use('/api/art-forms', artFormRoutes);
 

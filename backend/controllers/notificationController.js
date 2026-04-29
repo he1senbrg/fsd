@@ -1,14 +1,10 @@
 const Notification = require('../models/Notification');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 
 exports.getNotifications = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
-    const [notifications, total] = await Promise.all([
-        Notification.find({ user: req.user._id }).sort({ createdAt: -1 }).skip(skip).limit(limit),
-        Notification.countDocuments({ user: req.user._id }),
-    ]);
-    res.status(200).json({ status: 'success', data: { notifications }, pagination: paginationMeta(total, page, limit) });
+    const notifications = await Notification.find({ user: req.user._id }).sort({ createdAt: -1 });
+    res.status(200).json({ status: 'success', data: { notifications } });
 });
 
 exports.getUnreadCount = catchAsync(async (req, res) => {

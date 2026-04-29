@@ -5,7 +5,6 @@ import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { cartAPI, productAPI, wishlistAPI } from "@/lib/api";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -191,17 +190,7 @@ export default function MarketplacePage() {
                         ))}
                     </div>
 
-                    {/* pagination */}
-                    <div className="mt-12 flex justify-center">
-                        <nav className="flex items-center gap-2">
-                            <Button className="w-10 h-10 flex items-center justify-center rounded border border-stone-200 text-stone-500 hover:border-[var(--primary-color)] hover:text-[var(--primary-color)] transition-colors"><span className="material-symbols-outlined">chevron_left</span></Button>
-                            <Button className="w-10 h-10 flex items-center justify-center rounded bg-[var(--primary-color)] text-white shadow-md">1</Button>
-                            <Button className="w-10 h-10 flex items-center justify-center rounded border border-stone-200 text-stone-600 hover:border-[var(--primary-color)] hover:text-[var(--primary-color)] transition-colors">2</Button>
-                            <Button className="w-10 h-10 flex items-center justify-center rounded border border-stone-200 text-stone-600 hover:border-[var(--primary-color)] hover:text-[var(--primary-color)] transition-colors">3</Button>
-                            <span className="px-2 text-stone-400">...</span>
-                            <Button className="w-10 h-10 flex items-center justify-center rounded border border-stone-200 text-stone-500 hover:border-[var(--primary-color)] hover:text-[var(--primary-color)] transition-colors"><span className="material-symbols-outlined">chevron_right</span></Button>
-                        </nav>
-                    </div>
+
                 </section>
             </main>
         </AppShell>

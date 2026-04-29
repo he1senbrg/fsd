@@ -71,10 +71,6 @@ export const postAPI = {
         request(`/posts/${id}`, { method: 'DELETE' }),
     updatePost: (id, data) =>
         request(`/posts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    reportPost: (id, reason = '') =>
-        request(`/posts/${id}/report`, { method: 'POST', body: JSON.stringify({ reason }) }),
-    savePost: (id) =>
-        request(`/posts/${id}/save`, { method: 'POST' }),
 };
 
 export const productAPI = {

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const sidebarLinks = [
-    { href: "/feed", icon: "feed", label: "Social Feed" },
+    { href: "/feed", icon: "feed", label: "Feed" },
     { href: "/profile", icon: "person", label: "Profile" },
     { href: "/opportunities", icon: "event", label: "Events & Gigs" },
     { href: "/marketplace", icon: "storefront", label: "My Shop" },

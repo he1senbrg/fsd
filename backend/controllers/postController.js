@@ -4,14 +4,12 @@ const Comment = require('../models/Comment');
 const Follow = require('../models/Follow');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 const { extractHashtags } = require('../utils/helpers');
 const NotificationService = require('../services/NotificationService');
 
-// GET /api/posts (paginated)
+// GET /api/posts
 exports.getPosts = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
-
     let filter = {};
 
     // filter by type
@@ -41,15 +39,10 @@ exports.getPosts = catchAsync(async (req, res) => {
         }
     }
 
-    const [posts, total] = await Promise.all([
-        Post.find(filter)
-            .populate('author', 'fullName avatar title verified primaryArtForm')
-            .populate('linkedProduct', 'name price images')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit),
-        Post.countDocuments(filter),
-    ]);
+    const posts = await Post.find(filter)
+        .populate('author', 'fullName avatar title verified primaryArtForm')
+        .populate('linkedProduct', 'name price images')
+        .sort({ createdAt: -1 });
 
     let postsWithLikeStatus = posts;
     if (req.user) {
@@ -66,7 +59,6 @@ exports.getPosts = catchAsync(async (req, res) => {
     res.status(200).json({
         status: 'success',
         data: { posts: postsWithLikeStatus },
-        pagination: paginationMeta(total, page, limit),
     });
 });
 
@@ -178,16 +170,9 @@ exports.toggleLike = catchAsync(async (req, res, next) => {
 
 // GET /api/posts/:id/comments
 exports.getComments = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
-
-    const [comments, total] = await Promise.all([
-        Comment.find({ post: req.params.id, parentComment: null })
-            .populate('author', 'fullName avatar')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit),
-        Comment.countDocuments({ post: req.params.id, parentComment: null }),
-    ]);
+    const comments = await Comment.find({ post: req.params.id, parentComment: null })
+        .populate('author', 'fullName avatar')
+        .sort({ createdAt: -1 });
 
     // replies
     const commentsWithReplies = await Promise.all(
@@ -202,7 +187,6 @@ exports.getComments = catchAsync(async (req, res) => {
     res.status(200).json({
         status: 'success',
         data: { comments: commentsWithReplies },
-        pagination: paginationMeta(total, page, limit),
     });
 });
 

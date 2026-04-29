@@ -502,7 +502,7 @@ export default function ProductDetailPage() {
                                 <p className="text-stone-400 text-sm">Be the first to review this product!</p>
                             </div>
                         ) : (
-                            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm divide-y divide-stone-100">
+                            <div className="bg-white rounded-2xl border border-stone-200 shadow-sm divide-y divide-stone-100 pl-4 pr-4">
                                 {reviews.map((r, i) => (
                                     <ReviewCard key={r._id || i} review={r} />
                                 ))}

@@ -3,13 +3,12 @@ const Contribution = require('../models/Contribution');
 const Order = require('../models/Order');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 const PaymentService = require('../services/PaymentService');
 const { generateOrderId } = require('../utils/helpers');
 const NotificationService = require('../services/NotificationService');
 
 exports.getCampaigns = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
     const filter = {};
     if (req.query.category) filter.category = req.query.category;
     if (req.query.status) filter.status = req.query.status;
@@ -20,11 +19,8 @@ exports.getCampaigns = catchAsync(async (req, res) => {
     if (req.query.sort === 'endingSoon') sort = { deadline: 1 };
     if (req.query.sort === 'newest') sort = { createdAt: -1 };
 
-    const [campaigns, total] = await Promise.all([
-        Campaign.find(filter).populate('creator', 'fullName avatar').sort(sort).skip(skip).limit(limit),
-        Campaign.countDocuments(filter),
-    ]);
-    res.status(200).json({ status: 'success', data: { campaigns }, pagination: paginationMeta(total, page, limit) });
+    const campaigns = await Campaign.find(filter).populate('creator', 'fullName avatar').sort(sort);
+    res.status(200).json({ status: 'success', data: { campaigns } });
 });
 
 exports.getCampaignStats = catchAsync(async (req, res) => {
@@ -61,7 +57,7 @@ exports.getCampaign = catchAsync(async (req, res, next) => {
 exports.createCampaign = catchAsync(async (req, res) => {
     const deadline = new Date();
     deadline.setDate(deadline.getDate() + (Number(req.body.duration) || 30));
-    const { rewardTiers, ...rest } = req.body; // strip rewardTiers if accidentally sent
+    const { rewardTiers, ...rest } = req.body;
     const campaign = await Campaign.create({ ...rest, creator: req.user._id, deadline });
     res.status(201).json({ status: 'success', data: { campaign } });
 });

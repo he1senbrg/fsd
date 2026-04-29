@@ -4,7 +4,7 @@ const Review = require('../models/Review');
 const Post = require('../models/Post');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 const NotificationService = require('../services/NotificationService');
 const { uploadBuffer } = require('../utils/blobStorage');
 
@@ -30,39 +30,26 @@ exports.getUserProfile = catchAsync(async (req, res, next) => {
 
 // GET /api/users/:id/portfolio
 exports.getUserPortfolio = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
     const filter = { author: req.params.id };
     if (req.query.type) filter.postType = req.query.type;
 
-    const [posts, total] = await Promise.all([
-        Post.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
-        Post.countDocuments(filter),
-    ]);
+    const posts = await Post.find(filter).sort({ createdAt: -1 });
 
     res.status(200).json({
         status: 'success',
         data: { posts },
-        pagination: paginationMeta(total, page, limit),
     });
 });
 
 // GET /api/users/:id/reviews
 exports.getUserReviews = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
-
-    const [reviews, total] = await Promise.all([
-        Review.find({ target: req.params.id })
-            .populate('reviewer', 'fullName avatar')
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limit),
-        Review.countDocuments({ target: req.params.id }),
-    ]);
+    const reviews = await Review.find({ target: req.params.id })
+        .populate('reviewer', 'fullName avatar')
+        .sort({ createdAt: -1 });
 
     res.status(200).json({
         status: 'success',
         data: { reviews },
-        pagination: paginationMeta(total, page, limit),
     });
 });
 
@@ -141,43 +128,27 @@ exports.toggleFollow = catchAsync(async (req, res, next) => {
 
 // GET /api/users/:id/followers
 exports.getFollowers = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
-
-    const [follows, total] = await Promise.all([
-        Follow.find({ followee: req.params.id })
-            .populate('follower', 'fullName avatar title primaryArtForm')
-            .skip(skip)
-            .limit(limit),
-        Follow.countDocuments({ followee: req.params.id }),
-    ]);
+    const follows = await Follow.find({ followee: req.params.id })
+        .populate('follower', 'fullName avatar title primaryArtForm');
 
     const followers = follows.map((f) => f.follower);
 
     res.status(200).json({
         status: 'success',
         data: { followers },
-        pagination: paginationMeta(total, page, limit),
     });
 });
 
 // GET /api/users/:id/following
 exports.getFollowing = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
-
-    const [follows, total] = await Promise.all([
-        Follow.find({ follower: req.params.id })
-            .populate('followee', 'fullName avatar title primaryArtForm')
-            .skip(skip)
-            .limit(limit),
-        Follow.countDocuments({ follower: req.params.id }),
-    ]);
+    const follows = await Follow.find({ follower: req.params.id })
+        .populate('followee', 'fullName avatar title primaryArtForm');
 
     const following = follows.map((f) => f.followee);
 
     res.status(200).json({
         status: 'success',
         data: { following },
-        pagination: paginationMeta(total, page, limit),
     });
 });
 

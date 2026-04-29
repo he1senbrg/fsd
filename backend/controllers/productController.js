@@ -2,12 +2,11 @@ const Product = require('../models/Product');
 const ProductReview = require('../models/ProductReview');
 const AppError = require('../utils/AppError');
 const catchAsync = require('../utils/catchAsync');
-const { paginate, paginationMeta } = require('../utils/pagination');
+
 const { uploadBuffer } = require('../utils/blobStorage');
 
 // GET /api/products (list with filters)
 exports.getProducts = catchAsync(async (req, res) => {
-    const { page, limit, skip } = paginate(req.query);
     const filter = { isActive: true };
 
     if (req.query.category) filter.category = req.query.category;
@@ -37,19 +36,13 @@ exports.getProducts = catchAsync(async (req, res) => {
             break;
     }
 
-    const [products, total] = await Promise.all([
-        Product.find(filter)
-            .populate('seller', 'fullName avatar location')
-            .sort(sort)
-            .skip(skip)
-            .limit(limit),
-        Product.countDocuments(filter),
-    ]);
+    const products = await Product.find(filter)
+        .populate('seller', 'fullName avatar location')
+        .sort(sort);
 
     res.status(200).json({
         status: 'success',
         data: { products },
-        pagination: paginationMeta(total, page, limit),
     });
 });
 

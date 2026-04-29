@@ -39,7 +39,7 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: "KalaSetu - Bridging Tradition and Opportunity",
+  title: "KalaSetu",
   description: "The premier platform connecting traditional artists, craftspeople, and organizers. Find work, sell crafts, and fund your cultural legacy.",
   keywords: "traditional arts, craftspeople, cultural platform, Indian arts, handmade crafts, cultural events",
 };
