@@ -34,12 +34,6 @@ export default function HelpPage() {
                     <p className="text-lg text-[var(--text-secondary)] max-w-2xl mx-auto">Find answers, get help, and reach our support team.</p>
                 </div>
 
-                {/* search */}
-                <div className="relative max-w-2xl mx-auto mb-12">
-                    <span className="material-symbols-outlined absolute left-4 top-4 text-stone-400">search</span>
-                    <input className="w-full bg-white border border-orange-200 rounded-xl py-4 pl-12 pr-4 text-lg focus:ring-2 focus:ring-[var(--secondary-color)] shadow-sm" placeholder="Search for help..." type="text" />
-                </div>
-
                 {/* help */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-16">
                     {categories.map((cat, i) => (
@@ -80,10 +74,7 @@ export default function HelpPage() {
                     <h2 className="text-2xl font-bold mb-3 font-display relative z-10">Still need help?</h2>
                     <p className="text-white/80 mb-6 relative z-10">Our support team is available 24/7 to assist you.</p>
                     <div className="flex flex-col md:flex-row justify-center gap-4 relative z-10">
-                        <Button className="bg-white text-[var(--deep-teal)] px-6 py-3 rounded-lg font-bold hover:bg-[var(--cream)] transition-colors flex items-center justify-center gap-2 shadow-lg">
-                            <span className="material-symbols-outlined">chat</span>Start Live Chat
-                        </Button>
-                        <Button className="bg-white/20 backdrop-blur text-white px-6 py-3 rounded-lg font-bold hover:bg-white/30 transition-colors flex items-center justify-center gap-2 border border-white/30">
+                        <Button onClick={() => window.location.href = "mailto:support@kalasetu.cfd"} className="bg-white/20 backdrop-blur text-white px-6 py-3 rounded-lg font-bold hover:bg-white/30 transition-colors flex items-center justify-center gap-2 border border-white/30">
                             <span className="material-symbols-outlined">mail</span>Email Support
                         </Button>
                     </div>
