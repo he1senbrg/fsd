@@ -21,6 +21,10 @@ function ProfileContent() {
     const [isFollowing, setIsFollowing] = useState(false);
     const [followLoading, setFollowLoading] = useState(false);
     const [msgLoading, setMsgLoading] = useState(false);
+    
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewText, setReviewText] = useState("");
+    const [submittingReview, setSubmittingReview] = useState(false);
 
     const [commentsMap, setCommentsMap] = useState({});
     const [expandedComments, setExpandedComments] = useState(new Set());
@@ -104,6 +108,23 @@ function ProfileContent() {
             router.push('/messages');
         }
         setMsgLoading(false);
+    };
+
+    const handleSubmitReview = async () => {
+        if (!u._id || reviewRating === 0) return;
+        setSubmittingReview(true);
+        try {
+            const res = await userAPI.addReview(u._id, reviewRating, reviewText);
+            setReviews(prev => [res.data.review, ...prev.filter(r => r.reviewer?._id !== authUser?._id)]);
+            setReviewRating(0);
+            setReviewText("");
+            // update local rating
+            const profileRes = await userAPI.getProfile(u._id);
+            setProfile(profileRes.data.user || profileRes.data);
+        } catch (e) {
+            console.error(e);
+        }
+        setSubmittingReview(false);
     };
 
     function timeAgo(dateStr) {
@@ -547,6 +568,39 @@ function ProfileContent() {
                         {/* review */}
                         <div>
                             <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4 font-display">Reviews</h2>
+                            
+                            {!isOwnProfile && (
+                                <div className="bg-white border border-orange-100 rounded-xl p-6 shadow-sm mb-6">
+                                    <h3 className="font-bold mb-2">Leave a Review</h3>
+                                    <div className="flex gap-1 mb-3">
+                                        {[1, 2, 3, 4, 5].map(star => (
+                                            <span 
+                                                key={star} 
+                                                onClick={() => setReviewRating(star)}
+                                                className={`material-symbols-outlined cursor-pointer text-xl ${reviewRating >= star ? 'text-yellow-400 filled' : 'text-stone-300'}`}
+                                            >
+                                                star
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <textarea 
+                                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--secondary-color)] mb-3 resize-none"
+                                        rows="3"
+                                        placeholder="Write your review..."
+                                        value={reviewText}
+                                        onChange={e => setReviewText(e.target.value)}
+                                    />
+                                    <Button 
+                                        onClick={handleSubmitReview} 
+                                        disabled={reviewRating === 0 || submittingReview}
+                                        className="bg-[var(--primary-color)] text-white px-5 py-2 rounded-full font-bold hover:bg-[var(--secondary-color)] transition shadow-sm text-sm flex items-center gap-2"
+                                    >
+                                        <span className="material-symbols-outlined text-base">send</span>
+                                        {submittingReview ? 'Submitting...' : 'Submit Review'}
+                                    </Button>
+                                </div>
+                            )}
+
                             {reviews.length === 0 && (
                                 <EmptyState className="py-8" icon="rate_review" iconClassName="text-4xl" description="No reviews yet." />
                             )}
@@ -562,7 +616,6 @@ function ProfileContent() {
                                                     ))}
                                                 </div>
                                             </div>
-                                            <span className="material-symbols-outlined text-stone-400 text-lg">format_quote</span>
                                         </div>
                                         <p className="text-sm text-[var(--text-secondary)] leading-relaxed italic">&ldquo;{review.comment || review.text}&rdquo;</p>
                                     </div>

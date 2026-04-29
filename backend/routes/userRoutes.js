@@ -11,6 +11,7 @@ router.get('/me/bookmarks', authenticate, require('../controllers/opportunityCon
 router.get('/:id', optionalAuth, ctrl.getUserProfile);
 router.get('/:id/portfolio', ctrl.getUserPortfolio);
 router.get('/:id/reviews', ctrl.getUserReviews);
+router.post('/:id/reviews', authenticate, ctrl.addReview);
 router.get('/:id/followers', optionalAuth, ctrl.getFollowers);
 router.get('/:id/following', optionalAuth, ctrl.getFollowing);
 

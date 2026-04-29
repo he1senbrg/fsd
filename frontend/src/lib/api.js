@@ -153,6 +153,10 @@ export const userAPI = {
     getProfile: (id) => request(`/users/${id}`),
     getPortfolio: (id) => request(`/users/${id}/portfolio`),
     getReviews: (id) => request(`/users/${id}/reviews`),
+    addReview: (id, rating, text) => request(`/users/${id}/reviews`, {
+        method: 'POST',
+        body: JSON.stringify({ rating, text })
+    }),
     getSettings: () => request('/users/me/settings'),
     updateAvatar: (formData) =>
         request('/users/me/avatar', { method: 'PUT', body: formData }),
