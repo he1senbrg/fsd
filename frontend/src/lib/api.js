@@ -93,10 +93,10 @@ export const eventAPI = {
     },
     getUpcoming: () => request('/events/upcoming'),
     getEvent: (id) => request(`/events/${id}`),
-    bookTicket: (id, ticketTier, quantity = 1) =>
+    bookTicket: (id, quantity = 1) =>
         request(`/events/${id}/book`, {
             method: 'POST',
-            body: JSON.stringify({ ticketTier, quantity }),
+            body: JSON.stringify({ quantity }),
         }),
     rsvpEvent: (id) => request(`/events/${id}/rsvp`, { method: 'POST' }),
     createEvent: (data) =>
@@ -247,6 +247,14 @@ export const wishlistAPI = {
 
 export const searchAPI = {
     search: (q) => request(`/search?q=${encodeURIComponent(q)}`),
+};
+
+export const mediaAPI = {
+    upload: (file) => {
+        const formData = new FormData();
+        formData.append('image', file);
+        return request('/media/upload', { method: 'POST', body: formData });
+    },
 };
 
 export const paymentAPI = {

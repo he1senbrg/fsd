@@ -77,7 +77,7 @@ function PaymentForm() {
                 result = await cartAPI.checkout();
                 setOrderId(result.data?.order?.orderId || result.data?.order?._id || "ORD-STUB");
             } else if (type === "event") {
-                result = await eventAPI.bookTicket(itemId, tierName);
+                result = await eventAPI.bookTicket(itemId, 1);  // quantity defaults to 1
                 setOrderId(result.data?.order?.orderId || result.data?.order?._id || "TKT-STUB");
             } else if (type === "campaign") {
                 result = await campaignAPI.back(itemId, campaignAmount || displayAmount);

@@ -64,21 +64,16 @@ exports.publishEvent = catchAsync(async (req, res, next) => {
 });
 
 exports.bookTicket = catchAsync(async (req, res, next) => {
-    const { ticketTier, quantity = 1 } = req.body;
+    const { quantity = 1 } = req.body;
     const event = await Event.findById(req.params.id);
     if (!event) return next(new AppError('Event not found', 404));
     if (event.status !== 'published') return next(new AppError('Event not available', 400));
 
     let ticketPrice = 0;
-    if (event.eventType === 'paid' && ticketTier) {
-        const tier = event.ticketTiers.find((t) => t.name === ticketTier);
-        if (!tier) return next(new AppError('Invalid ticket tier', 400));
-        if (tier.soldQty + quantity > tier.totalQty) return next(new AppError('Not enough tickets', 400));
-        ticketPrice = tier.price * quantity;
-        tier.soldQty += quantity;
-    }
-    if (event.maxAttendees && event.attendeeCount + quantity > event.maxAttendees) {
-        return next(new AppError('Event is fully booked', 400));
+    if (event.eventType === 'paid') {
+        if (event.soldQty + quantity > event.totalQty) return next(new AppError('Not enough tickets available', 400));
+        ticketPrice = event.price * quantity;
+        event.soldQty += quantity;
     }
     event.attendeeCount += quantity;
     await event.save();
@@ -92,7 +87,7 @@ exports.bookTicket = catchAsync(async (req, res, next) => {
 
     const order = await Order.create({
         orderId: generateOrderId(), buyer: req.user._id, orderType: 'booking',
-        event: event._id, ticketTier: ticketTier || 'General', seller: event.organizer,
+        event: event._id, seller: event.organizer,
         totalAmount: ticketPrice, platformCommission: platformFee, status: 'confirmed', paymentId,
     });
     res.status(201).json({ status: 'success', data: { order } });
@@ -107,7 +102,7 @@ exports.rsvpEvent = catchAsync(async (req, res, next) => {
     await event.save();
     const order = await Order.create({
         orderId: generateOrderId(), buyer: req.user._id, orderType: 'booking',
-        event: event._id, ticketTier: 'Free', seller: event.organizer, totalAmount: 0, status: 'confirmed',
+        event: event._id, seller: event.organizer, totalAmount: 0, status: 'confirmed',
     });
     res.status(200).json({ status: 'success', data: { order } });
 });
@@ -117,6 +112,6 @@ exports.getAttendees = catchAsync(async (req, res, next) => {
     if (!event) return next(new AppError('Event not found', 404));
     if (event.organizer.toString() !== req.user._id.toString()) return next(new AppError('Not authorized', 403));
     const bookings = await Order.find({ event: event._id, orderType: 'booking' }).populate('buyer', 'fullName avatar email');
-    const attendees = bookings.map((b) => ({ user: b.buyer, ticketTier: b.ticketTier, bookedAt: b.createdAt }));
+    const attendees = bookings.map((b) => ({ user: b.buyer, bookedAt: b.createdAt }));
     res.status(200).json({ status: 'success', data: { attendees, total: attendees.length } });
 });

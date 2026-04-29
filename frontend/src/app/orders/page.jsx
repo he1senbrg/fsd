@@ -249,12 +249,6 @@ export default function OrdersPage() {
                                                     + {order.items.slice(1).map(i => i.product?.name).filter(Boolean).join(", ")}
                                                 </p>
                                             )}
-                                            {/* ticket tier */}
-                                            {isBooking && order.ticketTier && (
-                                                <span className="inline-block mt-1 text-[10px] font-semibold bg-orange-50 text-[var(--primary-color)] px-2 py-0.5 rounded-full border border-orange-100">
-                                                    {order.ticketTier} ticket
-                                                </span>
-                                            )}
                                             {/* campaign badge */}
                                             {isCrowdfunding && (
                                                 <span className="inline-block mt-1 text-[10px] font-semibold bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-100">
@@ -379,7 +373,6 @@ export default function OrdersPage() {
                                                 </p>
                                                 <p>Event: <strong>{ticketData[order._id]?.ticket?.event?.title || displayTitle}</strong></p>
                                                 <p>Attendee: <strong>{ticketData[order._id]?.ticket?.attendee?.fullName || "—"}</strong></p>
-                                                {order.ticketTier && <p>Tier: <strong>{order.ticketTier}</strong></p>}
                                                 <p>Booking ID: <strong className="font-mono">{ticketData[order._id]?.ticket?.orderId || order.orderId}</strong></p>
                                                 {ticketData[order._id]?.ticket?.event?.startDate && (
                                                     <p>Date: <strong>{new Date(ticketData[order._id].ticket.event.startDate).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}</strong></p>

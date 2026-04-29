@@ -2,9 +2,9 @@
 import AppShell from "@/components/AppShell";
 import { Button, FormInput, FormSelect, FormStepper, FormTextarea, SurfaceCard } from "@/components/ui";
 import { useToast } from "@/context/ToastContext";
-import { eventAPI } from "@/lib/api";
+import { eventAPI, mediaAPI } from "@/lib/api";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function EventCreatePage() {
     const [step, setStep] = useState(1);
@@ -12,12 +12,41 @@ export default function EventCreatePage() {
     const [category, setCategory] = useState("performance");
     const [artForm, setArtForm] = useState("Classical Music");
     const [description, setDescription] = useState("");
-    const [date, setDate] = useState("");
-    const [time, setTime] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     const [venue, setVenue] = useState("");
+    const [eventType, setEventType] = useState("free");
+    const [price, setPrice] = useState("");
+    const [totalQty, setTotalQty] = useState("");
+    const [coverImage, setCoverImage] = useState("");
+    const [imagePreview, setImagePreview] = useState("");
+    const [imageUploading, setImageUploading] = useState(false);
     const [publishing, setPublishing] = useState(false);
+    const coverInputRef = useRef(null);
     const showToast = useToast();
     const router = useRouter();
+
+    const handleCoverImageChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        setImageUploading(true);
+        try {
+            const previewUrl = URL.createObjectURL(file);
+            setImagePreview(previewUrl);
+            
+            const res = await mediaAPI.upload(file);
+            setCoverImage(res.data.url);
+            showToast('Image uploaded successfully!', 'success');
+        } catch (err) {
+            console.error(err);
+            setImagePreview("");
+            showToast(err?.data?.message || err?.message || 'Failed to upload image.', 'error');
+        }
+        setImageUploading(false);
+        e.target.value = '';
+    };
+    
     return (
         <AppShell>
             <div className="py-2">
@@ -26,7 +55,7 @@ export default function EventCreatePage() {
 
                 <FormStepper
                     currentStep={step}
-                    steps={["Event Details", "Tickets & Pricing", "Preview & Publish"]}
+                    steps={["Event Details", "Pricing & Capacity", "Preview & Publish"]}
                 />
 
                 <SurfaceCard className="p-4 sm:p-6 md:p-8">
@@ -56,12 +85,12 @@ export default function EventCreatePage() {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Date *</label>
-                                    <FormInput value={date} onChange={(e) => setDate(e.target.value)} type="date" />
+                                    <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Start Date *</label>
+                                    <FormInput value={startDate} onChange={(e) => setStartDate(e.target.value)} type="datetime-local" />
                                 </div>
                                 <div>
-                                    <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Time *</label>
-                                    <FormInput value={time} onChange={(e) => setTime(e.target.value)} type="time" />
+                                    <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">End Date *</label>
+                                    <FormInput value={endDate} onChange={(e) => setEndDate(e.target.value)} type="datetime-local" />
                                 </div>
                             </div>
                             <div>
@@ -70,10 +99,42 @@ export default function EventCreatePage() {
                             </div>
                             <div>
                                 <label className="text-sm font-semibold text-[var(--text-primary)] mb-2 block">Cover Image</label>
-                                <div className="border-2 border-dashed border-stone-300 rounded-xl p-8 text-center hover:border-[var(--primary-color)] transition-colors cursor-pointer">
-                                    <span className="material-symbols-outlined text-4xl text-stone-400 mb-2 block">image</span>
-                                    <p className="text-sm text-stone-500">Upload event banner</p>
-                                </div>
+                                {imagePreview ? (
+                                    <div className="relative rounded-xl overflow-hidden bg-stone-200 aspect-video">
+                                        <img src={imagePreview} alt="Cover preview" className="w-full h-full object-cover" />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setCoverImage("");
+                                                setImagePreview("");
+                                                if (coverInputRef.current) coverInputRef.current.value = '';
+                                            }}
+                                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+                                        >
+                                            <span className="material-symbols-outlined text-sm">close</span>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div
+                                        onClick={() => coverInputRef.current?.click()}
+                                        className="border-2 border-dashed border-stone-300 rounded-xl p-8 text-center hover:border-[var(--primary-color)] transition-colors cursor-pointer"
+                                    >
+                                        <span className="material-symbols-outlined text-4xl text-stone-400 mb-2 block">
+                                            {imageUploading ? 'hourglass_top' : 'image'}
+                                        </span>
+                                        <p className="text-sm text-stone-500">
+                                            {imageUploading ? 'Uploading...' : 'Click to upload event banner'}
+                                        </p>
+                                    </div>
+                                )}
+                                <input
+                                    ref={coverInputRef}
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={handleCoverImageChange}
+                                    disabled={imageUploading}
+                                />
                             </div>
                         </div>
                     )}
@@ -81,27 +142,25 @@ export default function EventCreatePage() {
                         <div className="space-y-6">
                             <div>
                                 <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Event Type *</label>
-                                <div className="flex gap-4">
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="type" className="text-[var(--primary-color)]" defaultChecked /><span>Paid</span></label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="type" className="text-[var(--primary-color)]" /><span>Free</span></label>
-                                    <label className="flex items-center gap-2 cursor-pointer"><input type="radio" name="type" className="text-[var(--primary-color)]" /><span>Invite Only</span></label>
-                                </div>
+                                <FormSelect value={eventType} onChange={(e) => setEventType(e.target.value)}>
+                                    <option value="free">Free</option>
+                                    <option value="paid">Paid</option>
+                                </FormSelect>
                             </div>
-                            <div>
-                                <label className="text-sm font-semibold text-[var(--text-primary)] mb-3 block">Ticket Tiers</label>
-                                {["General", "VIP"].map((tier, i) => (
-                                    <div key={i} className="bg-stone-50 rounded-lg p-4 mb-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        <input className="border border-stone-300 rounded-lg px-3 py-2 text-sm" defaultValue={tier} placeholder="Tier Name" type="text" />
-                                        <input className="border border-stone-300 rounded-lg px-3 py-2 text-sm" placeholder="Price (₹)" type="number" />
-                                        <input className="border border-stone-300 rounded-lg px-3 py-2 text-sm" placeholder="Qty Available" type="number" />
+                            {eventType === 'paid' && (
+                                <>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Ticket Price (₹) *</label>
+                                            <FormInput value={price} onChange={(e) => setPrice(e.target.value)} placeholder="e.g., 500" type="number" min="0" />
+                                        </div>
+                                        <div>
+                                            <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Total Tickets Available *</label>
+                                            <FormInput value={totalQty} onChange={(e) => setTotalQty(e.target.value)} placeholder="e.g., 200" type="number" min="1" />
+                                        </div>
                                     </div>
-                                ))}
-                                <Button className="text-[var(--secondary-color)] font-medium text-sm flex items-center gap-1 hover:underline"><span className="material-symbols-outlined text-sm">add</span> Add Ticket Tier</Button>
-                            </div>
-                            <div>
-                                <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">Max Attendees</label>
-                                <FormInput placeholder="e.g., 200" type="number" />
-                            </div>
+                                </>
+                            )}
                         </div>
                     )}
                     {step === 3 && (
@@ -111,10 +170,17 @@ export default function EventCreatePage() {
                                 <h3 className="text-xl font-bold text-[var(--text-primary)] mb-2 font-display">Event Ready to Publish!</h3>
                                 <p className="text-[var(--text-secondary)] text-sm mb-4">Your event will be visible on KalaSetu and open for bookings once published.</p>
                                 <div className="bg-white rounded-lg border p-4 text-left space-y-2 text-sm">
-                                    <div className="flex justify-between"><span className="text-stone-500">Title:</span><span className="font-medium">Evening of Ragas (Preview)</span></div>
-                                    <div className="flex justify-between"><span className="text-stone-500">Category:</span><span className="font-medium">Performance</span></div>
-                                    <div className="flex justify-between"><span className="text-stone-500">Date:</span><span className="font-medium">TBD</span></div>
-                                    <div className="flex justify-between"><span className="text-stone-500">Venue:</span><span className="font-medium">TBD</span></div>
+                                    <div className="flex justify-between"><span className="text-stone-500">Title:</span><span className="font-medium">{title || 'TBD'}</span></div>
+                                    <div className="flex justify-between"><span className="text-stone-500">Category:</span><span className="font-medium">{category}</span></div>
+                                    <div className="flex justify-between"><span className="text-stone-500">Start:</span><span className="font-medium">{startDate ? new Date(startDate).toLocaleDateString() : 'TBD'}</span></div>
+                                    <div className="flex justify-between"><span className="text-stone-500">End:</span><span className="font-medium">{endDate ? new Date(endDate).toLocaleDateString() : 'TBD'}</span></div>
+                                    <div className="flex justify-between"><span className="text-stone-500">Venue:</span><span className="font-medium">{venue || 'TBD'}</span></div>
+                                    {eventType === 'paid' && (
+                                        <>
+                                            <div className="flex justify-between"><span className="text-stone-500">Price:</span><span className="font-medium">₹ {price || 'TBD'}</span></div>
+                                            <div className="flex justify-between"><span className="text-stone-500">Tickets:</span><span className="font-medium">{totalQty || 'TBD'}</span></div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -127,19 +193,23 @@ export default function EventCreatePage() {
                         ) : (
                             <Button onClick={async () => {
                                 if (!title.trim()) { showToast('Please enter an event title.', 'warning'); return; }
-                                if (!date) { showToast('Please enter a date.', 'warning'); return; }
-                                if (!time) { showToast('Please enter a time.', 'warning'); return; }
+                                if (!startDate) { showToast('Please enter a start date.', 'warning'); return; }
+                                if (!endDate) { showToast('Please enter an end date.', 'warning'); return; }
+                                if (!venue.trim()) { showToast('Please enter a venue.', 'warning'); return; }
+                                if (eventType === 'paid' && (!price || !totalQty)) { showToast('Please enter ticket price and quantity.', 'warning'); return; }
                                 setPublishing(true);
                                 try {
-                                    const startDate = new Date(`${date}T${time}:00`).toISOString();
                                     const payload = {
                                         title: title.trim(),
                                         category,
                                         artForm,
                                         description,
-                                        startDate,
-                                        time,
+                                        startDate: new Date(startDate).toISOString(),
+                                        endDate: new Date(endDate).toISOString(),
                                         venue,
+                                        eventType,
+                                        ...(coverImage && { coverImage }),
+                                        ...(eventType === 'paid' && { price: parseFloat(price), totalQty: parseInt(totalQty) }),
                                     };
                                     console.log('Publishing event with payload:', payload);
                                     const response = await eventAPI.createEvent(payload);
