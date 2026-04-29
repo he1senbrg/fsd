@@ -144,7 +144,7 @@ export default function MarketplacePage() {
                             <div
                                 key={product._id || i}
                                 className="bg-white rounded-xl overflow-hidden card-shadow group hover:-translate-y-1 transition-transform duration-300 cursor-pointer"
-                                onClick={() => router.push(`/marketplace/${product._id}`)}
+                                onClick={() => router.push(`/marketplace/product?id=${encodeURIComponent(product._id)}`)}
                             >
                                 <div className="relative aspect-[4/3] bg-stone-100 overflow-hidden">
                                     <Image

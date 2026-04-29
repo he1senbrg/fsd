@@ -3,10 +3,10 @@ import AppShell from "@/components/AppShell";
 import { Button, Loader } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
-import { cartAPI, productAPI, wishlistAPI } from "@/lib/api";
+import { cartAPI, productAPI } from "@/lib/api";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 function StarRating({ value, onChange, readonly = false }) {
@@ -61,7 +61,8 @@ function ReviewCard({ review }) {
 }
 
 export default function ProductDetailPage() {
-    const { id } = useParams();
+    const searchParams = useSearchParams();
+    const id = searchParams.get("id");
     const router = useRouter();
     const showToast = useToast();
     const { user } = useAuth();
@@ -90,14 +91,22 @@ export default function ProductDetailPage() {
     const isOwner = user && product && product.seller?._id === user._id;
 
     useEffect(() => {
+        let cancelled = false;
+
         async function load() {
+            setLoading(true);
             try {
                 const [pdtRes, revRes] = await Promise.all([
                     productAPI.getProduct(id),
                     productAPI.getReviews(id),
                 ]);
                 const p = pdtRes.data?.product;
+
+                if (cancelled) return;
+
                 setProduct(p);
+                setActiveImg(0);
+                setQty(1);
                 setEditForm({
                     name: p?.name || "",
                     description: p?.description || "",
@@ -111,11 +120,28 @@ export default function ProductDetailPage() {
                 setEditPreviews(p?.images || []);
                 setReviews(revRes.data?.reviews || []);
             } catch (e) {
-                if (e?.status !== 401) console.error(e);
+                if (cancelled) return;
+                if (e?.status !== 401 && e?.status !== 404) console.error(e);
+                setProduct(null);
+                setReviews([]);
             }
-            setLoading(false);
+            if (!cancelled) {
+                setLoading(false);
+            }
         }
-        if (id) load();
+
+        if (!id) {
+            setProduct(null);
+            setReviews([]);
+            setLoading(false);
+            return undefined;
+        }
+
+        load();
+
+        return () => {
+            cancelled = true;
+        };
     }, [id]);
 
     const handleAddToCart = async (buyNow = false) => {
@@ -124,22 +150,18 @@ export default function ProductDetailPage() {
             await cartAPI.addItem(product._id, qty);
             if (buyNow) router.push("/cart");
             else showToast("Added to cart!", "success");
-        } catch (err) {
+        } catch {
             showToast("Failed to add to cart.", "error");
         }
         setCartLoading(false);
     };
 
-    const handleWishlist = async () => {
-        try {
-            await wishlistAPI.toggleWishlist(product._id);
-            setInWishlist(w => !w);
-        } catch { }
-    };
-
     const handleSubmitReview = async (e) => {
         e.preventDefault();
-        if (!reviewRating) { showToast("Please select a star rating.", "warning"); return; }
+        if (!reviewRating) {
+            showToast("Please select a star rating.", "warning");
+            return;
+        }
         setSubmittingReview(true);
         try {
             const res = await productAPI.addReview(id, reviewRating, reviewText);
@@ -147,7 +169,7 @@ export default function ProductDetailPage() {
             setReviewRating(0);
             setReviewText("");
             showToast("Review submitted!", "success");
-            // refresh product for new avg
+
             const pdtRes = await productAPI.getProduct(id);
             setProduct(pdtRes.data?.product);
         } catch (err) {
@@ -180,7 +202,9 @@ export default function ProductDetailPage() {
         setEditSaving(true);
         try {
             const fd = new FormData();
-            Object.entries(editForm).forEach(([k, v]) => { if (v !== "" && v !== undefined) fd.append(k, v); });
+            Object.entries(editForm).forEach(([k, v]) => {
+                if (v !== "" && v !== undefined) fd.append(k, v);
+            });
             editImages.forEach(f => fd.append("images", f));
             const res = await productAPI.updateProduct(id, fd);
             setProduct(res.data?.product);
@@ -222,10 +246,10 @@ export default function ProductDetailPage() {
                     <span className="text-[var(--text-secondary)] font-medium truncate max-w-[200px]">{product.name}</span>
                 </nav>
 
-                {/* main product section */}
+                {/* pdt section */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-14">
-                    {/* image gallery */}
                     <div>
+                        {/* image gallery */}
                         <div className="relative aspect-square rounded-2xl overflow-hidden bg-stone-100 mb-3 shadow-md">
                             <Image
                                 src={images[activeImg] || "/placeholder.png"}
@@ -265,7 +289,6 @@ export default function ProductDetailPage() {
                         )}
                     </div>
 
-                    {/* product info */}
                     <div className="flex flex-col">
                         <div className="flex items-start justify-between gap-2 mb-2">
                             <div>
@@ -280,7 +303,7 @@ export default function ProductDetailPage() {
                             {product.region && <span className="text-stone-400"> · {product.region}</span>}
                         </p>
 
-                        {/* rating summary */}
+                        {/* rating */}
                         <div className="flex items-center gap-2 mb-4">
                             <StarRating value={Math.round(avgRating)} readonly />
                             <span className="text-sm font-semibold text-stone-700">{avgRating > 0 ? avgRating.toFixed(1) : "No ratings"}</span>
@@ -299,11 +322,9 @@ export default function ProductDetailPage() {
                                 </span>
                             )}
                         </div>
-
-                        {/* description */}
+                        
                         <p className="text-stone-600 mb-6 leading-relaxed text-sm">{product.description || "No description provided."}</p>
 
-                        {/* stock & qty */}
                         {product.stock > 0 ? (
                             <div className="flex items-center gap-4 mb-6">
                                 <span className="text-sm text-stone-500">Qty:</span>
@@ -320,7 +341,6 @@ export default function ProductDetailPage() {
                             </div>
                         )}
 
-                        {/* CTA buttons */}
                         <div className="flex gap-3 mb-6">
                             <Button
                                 variant="outline"
@@ -340,8 +360,7 @@ export default function ProductDetailPage() {
                                 Buy Now
                             </Button>
                         </div>
-
-                        {/* owner actions */}
+                        
                         {isOwner && (
                             <div className="flex gap-2 pt-4 border-t border-stone-100">
                                 <Button
@@ -364,7 +383,6 @@ export default function ProductDetailPage() {
                     </div>
                 </div>
 
-                {/* edit panel (owner only) */}
                 {isOwner && showEdit && (
                     <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 mb-10">
                         <h3 className="font-display text-xl font-bold text-[var(--text-primary)] mb-6 flex items-center gap-2">
@@ -446,9 +464,7 @@ export default function ProductDetailPage() {
                     </div>
                 )}
 
-                {/* reviews section */}
                 <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
-                    {/* rating overview */}
                     <div className="lg:col-span-2">
                         <h2 className="font-display text-2xl font-bold text-[var(--text-primary)] mb-6">Ratings & Reviews</h2>
                         <div className="bg-[var(--primary-light,#fef3ec)] rounded-2xl p-6 text-center mb-6">
@@ -492,8 +508,8 @@ export default function ProductDetailPage() {
                             </p>
                         )}
                     </div>
-
-                    {/* reviews list */}
+                    
+                    {/* review list */}
                     <div className="lg:col-span-3">
                         {reviews.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-center gap-3 bg-stone-50 rounded-2xl">
