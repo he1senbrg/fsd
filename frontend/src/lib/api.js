@@ -174,6 +174,8 @@ export const userAPI = {
     getSettings: () => request('/users/me/settings'),
     updateAvatar: (formData) =>
         request('/users/me/avatar', { method: 'PUT', body: formData }),
+    updateCover: (formData) =>
+        request('/users/me/cover', { method: 'PUT', body: formData }),
     updateProfile: (data) =>
         request('/users/me/profile', {
             method: 'PUT',

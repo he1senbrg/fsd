@@ -8,6 +8,19 @@ const PaymentService = require('../services/PaymentService');
 const { generateOrderId } = require('../utils/helpers');
 const NotificationService = require('../services/NotificationService');
 
+function serializeCampaign(campaign) {
+    const data = typeof campaign.toObject === 'function' ? campaign.toObject() : { ...campaign };
+    const deadline = data.deadline ? new Date(data.deadline) : null;
+    const diffMs = deadline ? deadline.getTime() - Date.now() : 0;
+    const daysLeft = deadline ? Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24))) : 0;
+
+    return {
+        ...data,
+        backersCount: data.backerCount || 0,
+        daysLeft,
+    };
+}
+
 exports.getCampaigns = catchAsync(async (req, res) => {
     const filter = {};
     if (req.query.category) filter.category = req.query.category;
@@ -20,7 +33,7 @@ exports.getCampaigns = catchAsync(async (req, res) => {
     if (req.query.sort === 'newest') sort = { createdAt: -1 };
 
     const campaigns = await Campaign.find(filter).populate('creator', 'fullName avatar').sort(sort);
-    res.status(200).json({ status: 'success', data: { campaigns } });
+    res.status(200).json({ status: 'success', data: { campaigns: campaigns.map(serializeCampaign) } });
 });
 
 exports.getCampaignStats = catchAsync(async (req, res) => {
@@ -35,6 +48,8 @@ exports.getCampaignStats = catchAsync(async (req, res) => {
         status: 'success',
         data: {
             totalFunded: totalFunded[0]?.total || 0,
+            totalCampaigns: campaignCount,
+            totalBackers: totalBackers.length,
             campaignCount,
             backerCount: totalBackers.length,
             successRate: allFinished > 0 ? Math.round((funded / allFinished) * 100) : 0,
@@ -45,13 +60,13 @@ exports.getCampaignStats = catchAsync(async (req, res) => {
 exports.getTopFunded = catchAsync(async (req, res) => {
     const campaigns = await Campaign.find({ status: { $in: ['active', 'funded'] } })
         .populate('creator', 'fullName avatar').sort({ raisedAmount: -1 }).limit(2);
-    res.status(200).json({ status: 'success', data: { campaigns } });
+    res.status(200).json({ status: 'success', data: { campaigns: campaigns.map(serializeCampaign) } });
 });
 
 exports.getCampaign = catchAsync(async (req, res, next) => {
     const campaign = await Campaign.findById(req.params.id).populate('creator', 'fullName avatar title location');
     if (!campaign) return next(new AppError('Campaign not found', 404));
-    res.status(200).json({ status: 'success', data: { campaign } });
+    res.status(200).json({ status: 'success', data: { campaign: serializeCampaign(campaign) } });
 });
 
 exports.createCampaign = catchAsync(async (req, res) => {
@@ -59,7 +74,7 @@ exports.createCampaign = catchAsync(async (req, res) => {
     deadline.setDate(deadline.getDate() + (Number(req.body.duration) || 30));
     const { rewardTiers, ...rest } = req.body;
     const campaign = await Campaign.create({ ...rest, creator: req.user._id, deadline });
-    res.status(201).json({ status: 'success', data: { campaign } });
+    res.status(201).json({ status: 'success', data: { campaign: serializeCampaign(campaign) } });
 });
 
 exports.deleteCampaign = catchAsync(async (req, res, next) => {
@@ -75,14 +90,14 @@ exports.updateCampaign = catchAsync(async (req, res, next) => {
     if (!campaign) return next(new AppError('Not found', 404));
     if (campaign.creator.toString() !== req.user._id.toString()) return next(new AppError('Not authorized', 403));
     const updated = await Campaign.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
-    res.status(200).json({ status: 'success', data: { campaign: updated } });
+    res.status(200).json({ status: 'success', data: { campaign: serializeCampaign(updated) } });
 });
 
 exports.publishCampaign = catchAsync(async (req, res, next) => {
     const campaign = await Campaign.findById(req.params.id);
     if (!campaign) return next(new AppError('Not found', 404));
     if (campaign.creator.toString() !== req.user._id.toString()) return next(new AppError('Not authorized', 403));
-    res.status(200).json({ status: 'success', data: { campaign } });
+    res.status(200).json({ status: 'success', data: { campaign: serializeCampaign(campaign) } });
 });
 
 exports.backCampaign = catchAsync(async (req, res, next) => {

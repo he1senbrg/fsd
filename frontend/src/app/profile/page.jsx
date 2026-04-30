@@ -83,6 +83,18 @@ function ProfileContent() {
     const u = profile || authUser || {};
     const memberSince = u.createdAt ? new Date(u.createdAt).getFullYear() : "2022";
     const isOwnProfile = !paramId || paramId === authUser?._id;
+    const isArtLoverProfile = u.role === "artLover";
+    const socialLinks = [
+        { key: "website", label: "Website", icon: "language" },
+        { key: "instagram", label: "Instagram", icon: "photo_camera" },
+        { key: "facebook", label: "Facebook", icon: "thumb_up" },
+        { key: "youtube", label: "YouTube", icon: "play_circle" },
+    ].filter((item) => u.socialLinks?.[item.key]);
+
+    const normalizeUrl = (url) => {
+        if (!url) return "#";
+        return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+    };
 
     const handleFollow = async () => {
         if (!u._id) return;
@@ -348,10 +360,10 @@ function ProfileContent() {
                     {/* left col */}
                     <div className="space-y-6">
                         {/* stats */}
-                        <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-6 grid grid-cols-3 gap-4 text-center">
+                        <div className={`bg-white rounded-xl shadow-sm border border-orange-100 p-6 grid gap-4 text-center ${isArtLoverProfile ? "grid-cols-1" : "grid-cols-3"}`}>
                             <div><span className="text-2xl font-bold text-[var(--primary-color)] block">{u.followerCount ?? u.followersCount ?? u.stats?.followers ?? "0"}</span><span className="text-xs text-stone-500">Followers</span></div>
-                            <div><span className="text-2xl font-bold text-[var(--primary-color)] block">{u.performanceCount ?? u.performancesCount ?? u.stats?.performances ?? "0"}</span><span className="text-xs text-stone-500">Events</span></div>
-                            <div><span className="text-2xl font-bold text-[var(--primary-color)] block">{u.rating ?? u.stats?.rating ?? "0"}</span><span className="text-xs text-stone-500">Rating</span></div>
+                            {!isArtLoverProfile && <div><span className="text-2xl font-bold text-[var(--primary-color)] block">{u.performanceCount ?? u.performancesCount ?? u.stats?.performances ?? "0"}</span><span className="text-xs text-stone-500">Events</span></div>}
+                            {!isArtLoverProfile && <div><span className="text-2xl font-bold text-[var(--primary-color)] block">{u.rating ?? u.stats?.rating ?? "0"}</span><span className="text-xs text-stone-500">Rating</span></div>}
                         </div>
 
                         {/* abt */}
@@ -362,34 +374,80 @@ function ProfileContent() {
                             </p>
                         </div>
 
-                        {/* specializations */}
-                        <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-6">
-                            <h3 className="font-bold text-lg text-[var(--text-primary)] mb-3 serif-font">Specializations</h3>
-                            <div className="flex flex-wrap gap-2">
-                                {(u.specializations || []).map(tag => (
-                                    <span key={tag} className="bg-orange-50 text-[var(--primary-color)] px-3 py-1 rounded-full text-sm border border-orange-200">{tag}</span>
-                                ))}
-                                {(!u.specializations || u.specializations.length === 0) && <p className="text-sm text-stone-400">No specializations listed.</p>}
+                        {isArtLoverProfile && (
+                            <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-6">
+                                <h3 className="font-bold text-lg text-[var(--text-primary)] mb-3 serif-font">Social Links</h3>
+                                <div className="space-y-3">
+                                    {socialLinks.map((item) => (
+                                        <a
+                                            key={item.key}
+                                            href={normalizeUrl(u.socialLinks?.[item.key])}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-3 text-sm text-[var(--text-primary)] hover:text-[var(--primary-color)] transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-[var(--primary-color)]">{item.icon}</span>
+                                            <span>{item.label}</span>
+                                        </a>
+                                    ))}
+                                    {socialLinks.length === 0 && <p className="text-sm text-stone-400">No social links added.</p>}
+                                </div>
                             </div>
-                        </div>
+                        )}
+
+                        {/* specializations */}
+                        {!isArtLoverProfile && (
+                            <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-6">
+                                <h3 className="font-bold text-lg text-[var(--text-primary)] mb-3 serif-font">Specializations</h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {(u.specializations || []).map(tag => (
+                                        <span key={tag} className="bg-orange-50 text-[var(--primary-color)] px-3 py-1 rounded-full text-sm border border-orange-200">{tag}</span>
+                                    ))}
+                                    {(!u.specializations || u.specializations.length === 0) && <p className="text-sm text-stone-400">No specializations listed.</p>}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Availability */}
-                        <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-6">
-                            <h3 className="font-bold text-lg text-[var(--text-primary)] mb-3 serif-font">Availability & Pricing</h3>
-                            <div className="space-y-2 text-sm text-[var(--text-secondary)]">
-                                {(u.pricing || []).map((p, i) => (
-                                    <div key={i} className="flex justify-between"><span>{p.service}:</span><span className="font-bold text-[var(--text-primary)]">₹ {p.amount?.toLocaleString() || p.price?.toLocaleString()}</span></div>
-                                ))}
-                                {(!u.pricing || u.pricing.length === 0) && <p className="text-stone-400">Pricing not listed.</p>}
+                        {!isArtLoverProfile && (
+                            <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-6">
+                                <h3 className="font-bold text-lg text-[var(--text-primary)] mb-3 serif-font">Availability & Pricing</h3>
+                                <div className="space-y-2 text-sm text-[var(--text-secondary)]">
+                                    {(u.pricing || []).map((p, i) => (
+                                        <div key={i} className="flex justify-between"><span>{p.service}:</span><span className="font-bold text-[var(--text-primary)]">₹ {p.amount?.toLocaleString() || p.price?.toLocaleString()}</span></div>
+                                    ))}
+                                    {(!u.pricing || u.pricing.length === 0) && <p className="text-stone-400">Pricing not listed.</p>}
+                                </div>
+                                <Button
+                                    onClick={isOwnProfile ? () => router.push('/settings') : handleMessage}
+                                    disabled={msgLoading}
+                                    className="w-full mt-4 bg-[var(--primary-color)] text-white py-2 rounded-lg font-bold hover:bg-[var(--secondary-color)] transition-colors disabled:opacity-60"
+                                >
+                                    {msgLoading ? 'Opening...' : isOwnProfile ? 'Edit Pricing' : 'Book Now'}
+                                </Button>
                             </div>
-                            <Button
-                                onClick={isOwnProfile ? () => router.push('/settings') : handleMessage}
-                                disabled={msgLoading}
-                                className="w-full mt-4 bg-[var(--primary-color)] text-white py-2 rounded-lg font-bold hover:bg-[var(--secondary-color)] transition-colors disabled:opacity-60"
-                            >
-                                {msgLoading ? 'Opening...' : isOwnProfile ? 'Edit Pricing' : 'Book Now'}
-                            </Button>
-                        </div>
+                        )}
+
+                        {!isArtLoverProfile && (
+                            <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-6">
+                                <h3 className="font-bold text-lg text-[var(--text-primary)] mb-3 serif-font">Social Links</h3>
+                                <div className="space-y-3">
+                                    {socialLinks.map((item) => (
+                                        <a
+                                            key={item.key}
+                                            href={normalizeUrl(u.socialLinks?.[item.key])}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="flex items-center gap-3 text-sm text-[var(--text-primary)] hover:text-[var(--primary-color)] transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-[var(--primary-color)]">{item.icon}</span>
+                                            <span>{item.label}</span>
+                                        </a>
+                                    ))}
+                                    {socialLinks.length === 0 && <p className="text-sm text-stone-400">No social links added.</p>}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* right col */}
@@ -397,26 +455,29 @@ function ProfileContent() {
                         {/* portfolio */}
                         <div>
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
-                                <h2 className="text-2xl font-bold text-[var(--text-primary)] font-display">Portfolio</h2>
-                                <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                                    {portfolioTabs.map((tab) => (
-                                        <PillTab
-                                            key={tab}
-                                            active={portfolioFilter === tab}
-                                            onClick={() => setPortfolioFilter(tab)}
-                                            className="px-4 py-1.5"
-                                            inactiveClassName="bg-white border-stone-200 text-stone-600 hover:border-[var(--primary-color)]"
-                                        >
-                                            {tab}
-                                        </PillTab>
-                                    ))}
-                                </div>
+                                <h2 className="text-2xl font-bold text-[var(--text-primary)] font-display">{isArtLoverProfile ? "Posts" : "Portfolio"}</h2>
+                                {!isArtLoverProfile && (
+                                    <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+                                        {portfolioTabs.map((tab) => (
+                                            <PillTab
+                                                key={tab}
+                                                active={portfolioFilter === tab}
+                                                onClick={() => setPortfolioFilter(tab)}
+                                                className="px-4 py-1.5"
+                                                inactiveClassName="bg-white border-stone-200 text-stone-600 hover:border-[var(--primary-color)]"
+                                            >
+                                                {tab}
+                                            </PillTab>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             {portfolio.length === 0 && (
-                                <EmptyState className="py-8" icon="photo_library" iconClassName="text-4xl" description="No portfolio items yet." />
+                                <EmptyState className="py-8" icon="photo_library" iconClassName="text-4xl" description={isArtLoverProfile ? "No posts yet." : "No portfolio items yet."} />
                             )}
                             <div className="space-y-4">
                                 {portfolio.filter(item => {
+                                    if (isArtLoverProfile) return true;
                                     if (portfolioFilter === "All") return true;
                                     const pt = item.postType || "general";
                                     if (portfolioFilter === "Performances") return pt === "performance";
@@ -579,62 +640,64 @@ function ProfileContent() {
                         </div>
 
                         {/* review */}
-                        <div>
-                            <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4 font-display">Reviews</h2>
-                            
-                            {!isOwnProfile && (
-                                <div className="bg-white border border-orange-100 rounded-xl p-6 shadow-sm mb-6">
-                                    <h3 className="font-bold mb-2">Leave a Review</h3>
-                                    <div className="flex gap-1 mb-3">
-                                        {[1, 2, 3, 4, 5].map(star => (
-                                            <span 
-                                                key={star} 
-                                                onClick={() => setReviewRating(star)}
-                                                className={`material-symbols-outlined cursor-pointer text-xl ${reviewRating >= star ? 'text-yellow-400 filled' : 'text-stone-300'}`}
-                                            >
-                                                star
-                                            </span>
-                                        ))}
+                        {!isArtLoverProfile && (
+                            <div>
+                                <h2 className="text-2xl font-bold text-[var(--text-primary)] mb-4 font-display">Reviews</h2>
+                                
+                                {!isOwnProfile && (
+                                    <div className="bg-white border border-orange-100 rounded-xl p-6 shadow-sm mb-6">
+                                        <h3 className="font-bold mb-2">Leave a Review</h3>
+                                        <div className="flex gap-1 mb-3">
+                                            {[1, 2, 3, 4, 5].map(star => (
+                                                <span 
+                                                    key={star} 
+                                                    onClick={() => setReviewRating(star)}
+                                                    className={`material-symbols-outlined cursor-pointer text-xl ${reviewRating >= star ? 'text-yellow-400 filled' : 'text-stone-300'}`}
+                                                >
+                                                    star
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <textarea 
+                                            className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--secondary-color)] mb-3 resize-none"
+                                            rows="3"
+                                            placeholder="Write your review..."
+                                            value={reviewText}
+                                            onChange={e => setReviewText(e.target.value)}
+                                        />
+                                        <Button 
+                                            onClick={handleSubmitReview} 
+                                            disabled={reviewRating === 0 || submittingReview}
+                                            className="bg-[var(--primary-color)] text-white px-5 py-2 rounded-full font-bold hover:bg-[var(--secondary-color)] transition shadow-sm text-sm flex items-center gap-2"
+                                        >
+                                            <span className="material-symbols-outlined text-base">send</span>
+                                            {submittingReview ? 'Submitting...' : 'Submit Review'}
+                                        </Button>
                                     </div>
-                                    <textarea 
-                                        className="w-full bg-stone-50 border border-stone-200 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-[var(--secondary-color)] mb-3 resize-none"
-                                        rows="3"
-                                        placeholder="Write your review..."
-                                        value={reviewText}
-                                        onChange={e => setReviewText(e.target.value)}
-                                    />
-                                    <Button 
-                                        onClick={handleSubmitReview} 
-                                        disabled={reviewRating === 0 || submittingReview}
-                                        className="bg-[var(--primary-color)] text-white px-5 py-2 rounded-full font-bold hover:bg-[var(--secondary-color)] transition shadow-sm text-sm flex items-center gap-2"
-                                    >
-                                        <span className="material-symbols-outlined text-base">send</span>
-                                        {submittingReview ? 'Submitting...' : 'Submit Review'}
-                                    </Button>
-                                </div>
-                            )}
+                                )}
 
-                            {reviews.length === 0 && (
-                                <EmptyState className="py-8" icon="rate_review" iconClassName="text-4xl" description="No reviews yet." />
-                            )}
-                            <div className="space-y-4">
-                                {reviews.map((review, i) => (
-                                    <div key={review._id || i} className="bg-white border border-orange-100 rounded-xl p-6 shadow-sm">
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div>
-                                                <h4 className="font-bold text-[var(--text-primary)]">{review.name || review.reviewer?.fullName || "Reviewer"}</h4>
-                                                <div className="flex gap-0.5 mt-1">
-                                                    {[...Array(review.rating || 5)].map((_, j) => (
-                                                        <span key={j} className="material-symbols-outlined text-yellow-400 text-sm filled">star</span>
-                                                    ))}
+                                {reviews.length === 0 && (
+                                    <EmptyState className="py-8" icon="rate_review" iconClassName="text-4xl" description="No reviews yet." />
+                                )}
+                                <div className="space-y-4">
+                                    {reviews.map((review, i) => (
+                                        <div key={review._id || i} className="bg-white border border-orange-100 rounded-xl p-6 shadow-sm">
+                                            <div className="flex items-start justify-between mb-3">
+                                                <div>
+                                                    <h4 className="font-bold text-[var(--text-primary)]">{review.name || review.reviewer?.fullName || "Reviewer"}</h4>
+                                                    <div className="flex gap-0.5 mt-1">
+                                                        {[...Array(review.rating || 5)].map((_, j) => (
+                                                            <span key={j} className="material-symbols-outlined text-yellow-400 text-sm filled">star</span>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
+                                            <p className="text-sm text-[var(--text-secondary)] leading-relaxed italic">&ldquo;{review.comment || review.text}&rdquo;</p>
                                         </div>
-                                        <p className="text-sm text-[var(--text-secondary)] leading-relaxed italic">&ldquo;{review.comment || review.text}&rdquo;</p>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>
