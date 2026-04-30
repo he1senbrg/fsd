@@ -1,6 +1,6 @@
 "use client";
 import AppShell from "@/components/AppShell";
-import { Button, EmptyState, Loader, PillTab } from "@/components/ui";
+import { Button, EmptyState, Loader } from "@/components/ui";
 import { useAuth } from "@/context/AuthContext";
 import { useToast } from "@/context/ToastContext";
 import { campaignAPI, wishlistAPI } from "@/lib/api";
@@ -14,26 +14,11 @@ export default function CrowdfundingPage() {
     const { user } = useAuth();
     const [campaigns, setCampaigns] = useState([]);
     const [stats, setStats] = useState(null);
-    const [sponsorTiers, setSponsorTiers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState("All Campaigns");
-    const [wishlistedCampaigns, setWishlistedCampaigns] = useState(new Set());
     const [backingActive, setBackingActive] = useState(new Set());
     const [backingAmounts, setBackingAmounts] = useState({});
     const [backingLoading, setBackingLoading] = useState({});
     const showToast = useToast();
-
-    const toggleCampaignWishlist = async (e, campaignId) => {
-        e.preventDefault();
-        try {
-            await wishlistAPI.toggleWishlist(campaignId);
-            setWishlistedCampaigns(prev => {
-                const next = new Set(prev);
-                if (next.has(campaignId)) next.delete(campaignId); else next.add(campaignId);
-                return next;
-            });
-        } catch (err) { if (err?.status !== 401) console.error(err); }
-    };
 
     const toggleBackingForm = (campaignId) => {
         setBackingActive(prev => {
@@ -52,16 +37,6 @@ export default function CrowdfundingPage() {
         );
     };
 
-    const chooseTier = async (tier) => {
-        const amount = tier.amount;
-        if (!amount) return;
-        try {
-            // support featured campaign 
-            // show toast
-            showToast(`Sponsorship tier "${tier.name}" selected! Please choose a campaign to sponsor.`, "info");
-        } catch (err) { if (err?.status !== 401) console.error(err); }
-    };
-
     const handleDeleteCampaign = async (id) => {
         if (!confirm('Are you sure you want to delete this campaign?')) return;
         try {
@@ -74,26 +49,15 @@ export default function CrowdfundingPage() {
         }
     };
 
-    const tabs = ["All Campaigns", "Almost Funded", "New Arrivals", "Music", "Visual Arts", "Textiles", "Heritage"];
-    const tabCategoryMap = {
-        "Music": "music",
-        "Visual Arts": "visualArts",
-        "Textiles": "textiles",
-        "Heritage": "heritage",
-    };
-    const tierIcons = ["favorite", "palette", "school"];
-
     useEffect(() => {
         async function load() {
             try {
-                const [campsRes, statsRes, tiersRes] = await Promise.allSettled([
+                const [campsRes, statsRes] = await Promise.allSettled([
                     campaignAPI.getCampaigns(),
                     campaignAPI.getStats(),
-                    campaignAPI.getSponsorTiers(),
                 ]);
                 if (campsRes.status === "fulfilled") setCampaigns(campsRes.value.data?.campaigns || []);
                 if (statsRes.status === "fulfilled") setStats(statsRes.value.data);
-                if (tiersRes.status === "fulfilled") setSponsorTiers(tiersRes.value.data?.tiers || []);
             } catch (e) { if (e?.status !== 401) console.error(e); }
             setLoading(false);
         }
@@ -108,13 +72,6 @@ export default function CrowdfundingPage() {
         );
     }
 
-    const defaultStats = [
-        { value: stats?.totalFunded ? `₹ ${(stats.totalFunded / 100000).toFixed(0)}L+` : "₹ 52L+", label: "Total Funded" },
-        { value: stats?.totalCampaigns ? `${stats.totalCampaigns}+` : "180+", label: "Campaigns" },
-        { value: stats?.totalBackers ? `${(stats.totalBackers / 1000).toFixed(0)}K+` : "12K+", label: "Backers" },
-        { value: stats?.successRate ? `${stats.successRate}%` : "92%", label: "Success Rate" },
-    ];
-
     return (
         <AppShell>
             <div className="py-2">
@@ -127,47 +84,12 @@ export default function CrowdfundingPage() {
                     </p>
                 </div>
 
-                {/* stats */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-12 bg-gradient-to-r from-[var(--deep-teal)] to-[var(--primary-color)] rounded-2xl p-6 text-white shadow-xl">
-                    {defaultStats.map((stat, i) => (
-                        <div key={i} className="text-center">
-                            <p className="text-3xl font-bold font-display">{stat.value}</p>
-                            <p className="text-sm opacity-80">{stat.label}</p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* filters */}
-                <div className="flex items-center overflow-x-auto scrollbar-hide gap-3 mb-8">
-                    {tabs.map((tab) => (
-                        <PillTab
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            active={activeTab === tab}
-                        >
-                            {tab}
-                        </PillTab>
-                    ))}
-                </div>
-
                 {/* campaign grid */}
                 {campaigns.length === 0 && (
                     <EmptyState className="mb-8" icon="savings" description="No campaigns yet. Start one!" />
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-                    {[...campaigns].sort((a, b) => activeTab === "New Arrivals" ? new Date(b.createdAt) - new Date(a.createdAt) : 0).filter(c => {
-                        if (activeTab === "All Campaigns") return true;
-
-                        const raised = c.raisedAmount || 0;
-                        const goal = c.goalAmount || 1;
-                        const percent = Math.round((raised / goal) * 100);
-
-                        if (activeTab === "Almost Funded") return percent >= 75 && percent < 100;
-                        if (activeTab === "New Arrivals") return true;
-
-                        const mappedCategory = tabCategoryMap[activeTab];
-                        return mappedCategory ? c.category === mappedCategory : false;
-                    }).map((c, i) => {
+                    {[...campaigns].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).map((c, i) => {
                         const raised = c.raisedAmount || c.currentAmount || 0;
                         const goal = c.goalAmount || 1;
                         const percent = Math.round((raised / goal) * 100);
@@ -218,12 +140,14 @@ export default function CrowdfundingPage() {
                                     </div>
                                     <div className="flex items-center justify-between text-sm">
                                         <div className="flex gap-4 text-stone-500">
-                                            <span><strong className="text-[var(--text-primary)]">{c.backers || c.backersCount || 0}</strong> backers</span>
-                                            <span><strong className="text-[var(--text-primary)]">{c.days || c.daysLeft || 0}</strong> days left</span>
+                                            <span><strong className="text-[var(--text-primary)]">{c.backerCount ?? c.backersCount ?? 0}</strong> backers</span>
+                                            <span><strong className="text-[var(--text-primary)]">{c.daysLeft ?? 0}</strong> days left</span>
                                         </div>
-                                        <Button onClick={() => toggleBackingForm(c._id)} className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[var(--secondary-color)] transition-colors shadow-md">
-                                            {backingActive.has(c._id) ? 'Cancel' : 'Back This Project'}
-                                        </Button>
+                                        {user && c.creator?._id !== user._id && (
+                                            <Button onClick={() => toggleBackingForm(c._id)} className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-[var(--secondary-color)] transition-colors shadow-md">
+                                                {backingActive.has(c._id) ? 'Cancel' : 'Back This Project'}
+                                            </Button>
+                                        )}
                                     </div>
                                     {backingActive.has(c._id) && (
                                         <div className="mt-3 flex gap-2 items-center">

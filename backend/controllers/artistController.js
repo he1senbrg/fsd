@@ -9,7 +9,8 @@ const { generateOrderId } = require('../utils/helpers');
 const NotificationService = require('../services/NotificationService');
 
 exports.getArtists = catchAsync(async (req, res) => {
-    const filter = { role: 'artist' };
+    const role = req.query.role === 'artLover' ? 'artLover' : 'artist';
+    const filter = { role };
     if (req.query.artForm) filter.primaryArtForm = { $regex: req.query.artForm, $options: 'i' };
     if (req.query.location) filter.location = { $regex: req.query.location, $options: 'i' };
     if (req.query.minRating) filter.rating = { $gte: Number(req.query.minRating) };
@@ -20,7 +21,7 @@ exports.getArtists = catchAsync(async (req, res) => {
     if (req.query.sort === 'rating') sort = { rating: -1 };
     if (req.query.sort === 'popular') sort = { followerCount: -1 };
 
-    const artists = await User.find(filter).select('fullName avatar title location primaryArtForm specializations rating reviewCount verified followerCount pricing')
+    const artists = await User.find(filter).select('fullName avatar role title bio location primaryArtForm specializations rating reviewCount verified followerCount pricing')
         .sort(sort);
     res.status(200).json({ status: 'success', data: { artists } });
 });

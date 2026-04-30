@@ -19,10 +19,6 @@ export default function OrdersPage() {
         if (typeof window === "undefined") return false;
         return new URLSearchParams(window.location.search).get("success") === "true";
     });
-    const [reviewActive, setReviewActive] = useState(new Set());
-    const [reviewInputs, setReviewInputs] = useState({});
-    const [reviewLoading, setReviewLoading] = useState({});
-    const [reviewedOrders, setReviewedOrders] = useState(new Set());
     const [ticketData, setTicketData] = useState({});
     const [ticketLoading, setTicketLoading] = useState({});
     const [contactLoading, setContactLoading] = useState({});
@@ -53,24 +49,6 @@ export default function OrdersPage() {
             showToast("Ticket info not available.", "error");
         }
         setTicketLoading(prev => ({ ...prev, [orderId]: false }));
-    };
-
-    const submitReview = async (order) => {
-        const input = reviewInputs[order._id] || {};
-        const rating = input.rating || 5;
-        const comment = input.comment || "";
-        if (!comment.trim()) { showToast("Please write a review comment.", "warning"); return; }
-        setReviewLoading(prev => ({ ...prev, [order._id]: true }));
-        try {
-            await orderAPI.submitReview(order._id, rating, comment);
-            setReviewedOrders(prev => new Set([...prev, order._id]));
-            setReviewActive(prev => { const next = new Set(prev); next.delete(order._id); return next; });
-            showToast("Review submitted successfully!", "success");
-        } catch (err) {
-            if (err?.status !== 401) console.error(err);
-            showToast("Failed to submit review.", "error");
-        }
-        setReviewLoading(prev => ({ ...prev, [order._id]: false }));
     };
 
     const contactSeller = async (order) => {
@@ -186,6 +164,7 @@ export default function OrdersPage() {
                         const isCrowdfunding = order.orderType === "crowdfunding";
 
                         const firstItem = order.items?.[0];
+                        const productId = firstItem?.product?._id;
                         const extraItems = (order.items?.length || 0) - 1;
 
                         const displayTitle = isPurchase
@@ -207,7 +186,7 @@ export default function OrdersPage() {
 
                         const canTrack = order.status === "shipped" && isPurchase;
                         const canViewTicket = isBooking && (order.status === "confirmed" || order.status === "processing");
-                        const canReview = (order.status === "delivered" || order.status === "confirmed") && isPurchase;
+                        const canReview = (order.status === "delivered" || order.status === "confirmed") && isPurchase && Boolean(productId);
 
                         return (
                             <div key={order._id} className="bg-white rounded-xl shadow-sm border border-orange-100 p-4 sm:p-5 flex flex-col sm:flex-row gap-4 sm:gap-5">
@@ -313,23 +292,14 @@ export default function OrdersPage() {
                                                     {ticketLoading[order._id] ? "Loading…" : "View Ticket"}
                                                 </Button>
                                             )}
-                                            {canReview && !reviewedOrders.has(order._id) && (
+                                            {canReview && (
                                                 <Button
                                                     variant="primary"
-                                                    onClick={() => setReviewActive(prev => {
-                                                        const n = new Set(prev);
-                                                        if (n.has(order._id)) n.delete(order._id); else n.add(order._id);
-                                                        return n;
-                                                    })}
+                                                    onClick={() => router.push(`/marketplace/product?id=${encodeURIComponent(productId)}`)}
                                                     className="text-xs"
                                                 >
-                                                    {reviewActive.has(order._id) ? "Cancel Review" : "Leave Review"}
+                                                    Leave Review
                                                 </Button>
-                                            )}
-                                            {canReview && reviewedOrders.has(order._id) && (
-                                                <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-sm">check_circle</span>Reviewed
-                                                </span>
                                             )}
                                             {isCrowdfunding && (
                                                 <Button variant="primary" onClick={() => router.push("/crowdfunding")} className="text-xs">
@@ -383,37 +353,6 @@ export default function OrdersPage() {
                                             </div>
                                         )}
 
-                                        {/* review form */}
-                                        {reviewActive.has(order._id) && (
-                                            <div className="bg-stone-50 rounded-lg p-3 border border-stone-200 space-y-2">
-                                                <p className="text-xs font-bold text-stone-700">Leave a Review</p>
-                                                <div className="flex gap-1">
-                                                    {[1, 2, 3, 4, 5].map(star => (
-                                                        <Button
-                                                            key={star}
-                                                            onClick={() => setReviewInputs(prev => ({ ...prev, [order._id]: { ...(prev[order._id] || {}), rating: star } }))}
-                                                            className={(reviewInputs[order._id]?.rating || 5) >= star ? "text-yellow-400" : "text-stone-300"}
-                                                        >
-                                                            <span className="material-symbols-outlined text-xl filled">star</span>
-                                                        </Button>
-                                                    ))}
-                                                </div>
-                                                <textarea
-                                                    rows={2}
-                                                    placeholder="Share your experience…"
-                                                    value={reviewInputs[order._id]?.comment || ""}
-                                                    onChange={(e) => setReviewInputs(prev => ({ ...prev, [order._id]: { ...(prev[order._id] || {}), comment: e.target.value } }))}
-                                                    className="w-full border border-stone-200 rounded-lg px-3 py-2 text-xs resize-none focus:ring-1 focus:ring-[var(--secondary-color)]"
-                                                />
-                                                <Button
-                                                    onClick={() => submitReview(order)}
-                                                    disabled={reviewLoading[order._id]}
-                                                    className="bg-[var(--primary-color)] text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-[var(--secondary-color)] disabled:opacity-50"
-                                                >
-                                                    {reviewLoading[order._id] ? "Submitting…" : "Submit Review"}
-                                                </Button>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -19,7 +19,6 @@ export default function OpportunitiesClient() {
     const [activeTab, setActiveTab] = useState("All");
     const [searchQuery, setSearchQuery] = useState("");
     const [categoryFilter, setCategoryFilter] = useState("All Categories");
-    const [locationFilter, setLocationFilter] = useState("All Locations");
 
     // actions
     const [applyActive, setApplyActive] = useState(new Set());
@@ -154,13 +153,6 @@ export default function OpportunitiesClient() {
                     <option value="concert">Concert</option>
                     <option value="performance">Performance</option>
                 </select>
-                <select
-                    value={locationFilter}
-                    onChange={(e) => setLocationFilter(e.target.value)}
-                    className="bg-stone-50 border-none rounded-lg px-4 py-3 text-sm"
-                >
-                    <option>All Locations</option><option>Delhi</option><option>Mumbai</option><option>Jaipur</option><option>Bangalore</option>
-                </select>
             </div>
 
             {/* tab */}
@@ -193,7 +185,6 @@ export default function OpportunitiesClient() {
                     if (activeTab === "Exhibitions" && event.category !== "exhibition") return false;
                     if (searchQuery && !event.title?.toLowerCase().includes(searchQuery.toLowerCase()) && !event.description?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
                     if (categoryFilter !== "All Categories" && event.category !== categoryFilter) return false;
-                    if (locationFilter !== "All Locations" && event.venue !== locationFilter && !event.venue?.toLowerCase().includes(locationFilter.toLowerCase())) return false;
                     return true;
                 }).map((event, i) => {
                     const d = event.date ? new Date(event.date) : null;
@@ -202,15 +193,6 @@ export default function OpportunitiesClient() {
                     const isFree = event.price === 0 || event.type === "free" || event.price === "Free Entry";
                     return (
                         <div key={event._id || i} className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col md:flex-row h-auto md:h-52 relative">
-                            {user && event.organizer?._id === user._id && (
-                                <button
-                                    onClick={() => handleDeleteEvent(event._id)}
-                                    className="absolute top-4 right-4 z-10 bg-white/80 hover:bg-red-50 text-red-500 p-1.5 rounded-lg shadow-sm transition-colors backdrop-blur-sm border border-red-100 flex items-center justify-center leading-none"
-                                    title="Delete Event"
-                                >
-                                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                                </button>
-                            )}
                             <div className="md:w-1/3 relative h-48 md:h-auto overflow-hidden">
                                 <Image
                                     alt={event.title}
@@ -220,10 +202,6 @@ export default function OpportunitiesClient() {
                                     sizes="(max-width: 768px) 100vw, 33vw"
                                     unoptimized
                                 />
-                                <div className="absolute top-4 left-4 bg-[var(--terracotta)] text-white px-3 py-1 rounded-lg text-center shadow-lg">
-                                    <span className="block text-xl font-bold leading-none">{day}</span>
-                                    <span className="text-xs uppercase">{month}</span>
-                                </div>
                             </div>
                             <div className="md:w-2/3 p-6 flex flex-col justify-between">
                                 <div>
@@ -237,13 +215,22 @@ export default function OpportunitiesClient() {
                                         <span className={isFree ? "text-green-600 font-bold" : "font-bold text-[var(--text-primary)]"}>{isFree ? "Free Entry" : (typeof event.price === "number" ? `₹ ${event.price}` : event.price)}</span>
                                     </div>
                                     <div className="flex gap-2">
-                                        <Button
-                                            onClick={() => handleEventAction(event)}
-                                            disabled={eventLoading[event._id] || bookedEvents.has(event._id)}
-                                            className="bg-[var(--deep-teal)] text-white px-5 py-2 rounded-lg font-bold hover:bg-[var(--terracotta)] transition-colors shadow-md text-sm disabled:opacity-60"
-                                        >
-                                            {eventLoading[event._id] ? 'Processing...' : bookedEvents.has(event._id) ? (isFree ? 'RSVP’d ✓' : 'Booked ✓') : (isFree ? 'RSVP' : 'Book Ticket')}
-                                        </Button>
+                                        {user && event.organizer?._id === user._id ? (
+                                            <Button
+                                                onClick={() => handleDeleteEvent(event)}
+                                                className="px-5 py-2 font-bold bg-white/80 hover:bg-red-50 text-red-500 rounded-lg shadow-sm transition-colors border border-red-100 flex items-center justify-center"
+                                            >
+                                                <span className="material-symbols-outlined">delete</span> Delete
+                                            </Button>
+                                        ):(
+                                            <Button
+                                                onClick={() => handleEventAction(event)}
+                                                disabled={eventLoading[event._id] || bookedEvents.has(event._id)}
+                                                className="bg-[var(--deep-teal)] text-white px-5 py-2 rounded-lg font-bold hover:bg-[var(--terracotta)] transition-colors shadow-md text-sm disabled:opacity-60"
+                                            >
+                                                {eventLoading[event._id] ? 'Processing...' : bookedEvents.has(event._id) ? (isFree ? 'RSVP’d ✓' : 'Booked ✓') : (isFree ? 'RSVP' : 'Book Ticket')}
+                                            </Button>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -265,19 +252,9 @@ export default function OpportunitiesClient() {
                     if (activeTab === "Gigs" && call.type !== "performance") return false;
                     if (searchQuery && !call.title?.toLowerCase().includes(searchQuery.toLowerCase()) && !call.description?.toLowerCase().includes(searchQuery.toLowerCase())) return false;
                     if (categoryFilter !== "All Categories" && call.artForm !== categoryFilter && call.type !== categoryFilter.toLowerCase()) return false;
-                    if (locationFilter !== "All Locations" && !call.location?.toLowerCase().includes(locationFilter.toLowerCase())) return false;
                     return true;
                 }).map((call, i) => (
                     <div key={call._id || i} className="bg-white rounded-xl shadow-sm border border-orange-100 p-6 hover:-translate-y-1 transition-transform group relative">
-                        {user && call.organizer?._id === user._id && (
-                            <button
-                                onClick={() => handleDeleteOpportunity(call._id)}
-                                className="absolute top-4 right-4 z-10 bg-white/80 hover:bg-red-50 text-red-500 p-1.5 rounded-lg shadow-sm transition-colors backdrop-blur-sm border border-red-100 flex items-center justify-center leading-none"
-                                title="Delete Opportunity"
-                            >
-                                <span className="material-symbols-outlined text-[18px]">delete</span>
-                            </button>
-                        )}
                         <div className="flex items-center gap-3 mb-3">
                             <div className="w-12 h-12 rounded-lg bg-orange-50 flex items-center justify-center text-[var(--secondary-color)]">
                                 <span className="material-symbols-outlined text-2xl">{call.icon || "work"}</span>
@@ -298,12 +275,23 @@ export default function OpportunitiesClient() {
                             ))}
                         </div>
                         <div className="flex flex-col gap-2">
-                            <Button
-                                variant={appliedOpps.has(call._id) ? "success" : "primary"}
-                                onClick={() => toggleApplyForm(call._id)}
-                                disabled={appliedOpps.has(call._id)}
-                                className="w-full text-sm disabled:opacity-60"
-                            >{appliedOpps.has(call._id) ? 'Applied ✓' : applyActive.has(call._id) ? 'Cancel' : 'Apply Now'}</Button>
+                            {user && call.organizer?._id === user._id ? (
+                                <Button
+                                    variant="unstyled"
+                                    onClick={() => handleDeleteOpportunity(call._id)}
+                                    disabled={appliedOpps.has(call._id)}
+                                    className="w-full text-sm p-1.5 bg-white/80 hover:bg-red-50 text-red-500 rounded-lg shadow-sm transition-colors border border-red-100 flex items-center justify-center "
+                                >
+                                    <span className="material-symbols-outlined">delete</span> Delete
+                                </Button>
+                            ):(
+                                <Button
+                                    variant={appliedOpps.has(call._id) ? "success" : "primary"}
+                                    onClick={() => toggleApplyForm(call._id)}
+                                    disabled={appliedOpps.has(call._id)}
+                                    className="w-full text-sm disabled:opacity-60"
+                                >{appliedOpps.has(call._id) ? 'Applied ✓' : applyActive.has(call._id) ? 'Cancel' : 'Apply Now'}</Button>
+                            )}
                             {applyActive.has(call._id) && (
                                 <div className="flex flex-col gap-2">
                                     <textarea

@@ -239,21 +239,6 @@ export default function CartPage() {
                                 </div>
                             </div>
 
-                            {/* coupon */}
-                            <div className="bg-white rounded-xl shadow-sm border border-orange-100 p-4">
-                                <p className="text-sm font-semibold text-[var(--text-primary)] mb-3">Have a coupon?</p>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        placeholder="Enter coupon code"
-                                        className="flex-1 border border-stone-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--secondary-color)] focus:border-transparent"
-                                    />
-                                    <Button className="px-4 py-2 border border-[var(--primary-color)] text-[var(--primary-color)] rounded-lg text-sm font-semibold hover:bg-orange-50 transition-colors">
-                                        Apply
-                                    </Button>
-                                </div>
-                            </div>
-
                             {/* message */}
                             <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-xl p-4 border border-orange-100">
                                 <p className="text-xs text-[var(--text-secondary)] font-medium mb-1 flex items-center gap-1">

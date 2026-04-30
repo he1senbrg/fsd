@@ -25,7 +25,9 @@ export default function SettingsPage() {
     const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
     const [pwSaving, setPwSaving] = useState(false);
     const [avatarUploading, setAvatarUploading] = useState(false);
+    const [coverUploading, setCoverUploading] = useState(false);
     const avatarInputRef = useRef(null);
+    const coverInputRef = useRef(null);
 
     const [formData, setFormData] = useState({});
     const { artForms, addArtForm } = useArtForms();
@@ -85,6 +87,12 @@ export default function SettingsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authUser?._id]);
 
+    useEffect(() => {
+        if ((formData.role ?? settings?.role ?? authUser?.role) !== "artist" && activeTab === "billing") {
+            setActiveTab("profile");
+        }
+    }, [activeTab, authUser?.role, formData.role, settings?.role]);
+
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
         const val = type === 'checkbox' ? checked : value;
@@ -111,6 +119,7 @@ export default function SettingsPage() {
         try {
             if (activeTab === "profile") {
                 const payload = { ...formData };
+                delete payload.role;
                 // check if arrays are arrays
                 if (typeof payload.specializations === 'string') payload.specializations = payload.specializations.split(',').map(s => s.trim()).filter(Boolean);
                 if (typeof payload.languages === 'string') payload.languages = payload.languages.split(',').map(s => s.trim()).filter(Boolean);
@@ -144,13 +153,34 @@ export default function SettingsPage() {
             const res = await userAPI.updateAvatar(form);
             const updated = res.data?.user || res.data;
             updateUser(updated);
-            setSettings(prev => ({ ...prev, avatar: updated.avatar }));
+            setSettings(prev => ({ ...(prev || {}), avatar: updated.avatar }));
             showToast('Profile photo updated!', 'success');
         } catch (err) {
             console.error(err);
             showToast(err?.message || 'Failed to upload photo.', 'error');
         }
         setAvatarUploading(false);
+        e.target.value = '';
+    };
+
+    const handleCoverChange = async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setCoverUploading(true);
+        try {
+            const form = new FormData();
+            form.append('cover', file);
+            const res = await userAPI.updateCover(form);
+            const updated = res.data?.user || res.data;
+            updateUser(updated);
+            setSettings(prev => ({ ...(prev || {}), coverImage: updated.coverImage }));
+            setFormData(prev => ({ ...prev, coverImage: updated.coverImage }));
+            showToast('Cover image updated!', 'success');
+        } catch (err) {
+            console.error(err);
+            showToast(err?.message || 'Failed to upload cover image.', 'error');
+        }
+        setCoverUploading(false);
         e.target.value = '';
     };
 
@@ -189,6 +219,10 @@ export default function SettingsPage() {
 
     // default user data if settings empty
     const u = settings || authUser || {};
+    const currentRole = (formData.role ?? u.role ?? authUser?.role) === "artist" ? "artist" : "artLover";
+    const isArtist = currentRole === "artist";
+    const visibleTabs = isArtist ? tabs : tabs.filter((tab) => tab.id !== "billing");
+    const currentCoverImage = formData.coverImage || u.coverImage || "";
 
     return (
         <AppShell>
@@ -197,7 +231,7 @@ export default function SettingsPage() {
                 <aside className="w-full md:w-64 flex-shrink-0">
                     <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-6 font-display">Settings</h1>
                     <nav className="bg-white rounded-xl shadow-sm border border-orange-100 overflow-hidden">
-                        {tabs.map(tab => (
+                        {visibleTabs.map(tab => (
                             <Button key={tab.id} onClick={() => setActiveTab(tab.id)}
                                 className={`w-full flex items-center gap-3 px-5 py-4 text-sm font-medium transition-colors text-left ${activeTab === tab.id ? "bg-orange-50 text-[var(--primary-color)] border-l-4 border-[var(--primary-color)]" : "text-stone-600 hover:bg-stone-50"}`}>
                                 <span className="material-symbols-outlined text-xl">{tab.icon}</span>
@@ -228,30 +262,56 @@ export default function SettingsPage() {
                                             : <span className="material-symbols-outlined text-white text-xl">photo_camera</span>}
                                     </div>
                                 </div>
-                                <div className="flex flex-col gap-2 flex-1">
-                                    <div>
-                                        <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
-                                        <Button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} className="text-sm text-[var(--secondary-color)] font-semibold hover:underline disabled:opacity-50">
-                                            {avatarUploading ? 'Uploading...' : 'Change Photo'}
-                                        </Button>
-                                        <p className="text-xs text-stone-400 mt-1">JPG, PNG, max 2MB</p>
-                                    </div>
-                                    <div className="w-full">
-                                        <label className="text-sm font-medium text-stone-600 mb-1 block">Cover Image (URL)</label>
-                                        <input name="coverImage" value={formData.coverImage ?? u.coverImage ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" placeholder="https://example.com/cover.jpg" />
+                                <div>
+                                    <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                                    <Button type="button" onClick={() => avatarInputRef.current?.click()} disabled={avatarUploading} className="text-sm text-[var(--secondary-color)] font-semibold hover:underline disabled:opacity-50">
+                                        {avatarUploading ? 'Uploading...' : 'Change Photo'}
+                                    </Button>
+                                    <p className="text-xs text-stone-400 mt-1">JPG, PNG, max 2MB</p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col gap-2 flex-1">
+                                <div className="w-full">
+                                    <label className="text-sm font-medium text-stone-600 mb-2 block">Cover Image</label>
+                                    <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverChange} />
+                                    <div className="rounded-xl border border-stone-200 overflow-hidden bg-stone-50">
+                                        <div className="relative h-32 sm:h-36">
+                                            {currentCoverImage ? (
+                                                <Image
+                                                    alt="Cover preview"
+                                                    className="w-full h-full object-cover"
+                                                    src={currentCoverImage}
+                                                    fill
+                                                    sizes="(max-width: 640px) 100vw, 500px"
+                                                    unoptimized
+                                                />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-r from-orange-100 via-amber-50 to-stone-100 flex items-center justify-center">
+                                                    <span className="material-symbols-outlined text-4xl text-stone-300">image</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                                            <p className="text-xs text-stone-500">JPG or PNG, max 5MB</p>
+                                            <Button type="button" onClick={() => coverInputRef.current?.click()} disabled={coverUploading} className="text-sm text-[var(--secondary-color)] font-semibold hover:underline disabled:opacity-50">
+                                                {coverUploading ? 'Uploading...' : 'Upload Cover'}
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label className="text-sm font-medium text-stone-600 mb-1 block">Full Name</label><input name="fullName" value={formData.fullName ?? u.fullName ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
                                 <div><label className="text-sm font-medium text-stone-600 mb-1 block">Title / Headline</label><input name="title" value={formData.title ?? u.title ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" placeholder="e.g. Kathak Dancer & Choreographer" /></div>
                                 <div>
                                     <label className="text-sm font-medium text-stone-600 mb-1 block">Account Role</label>
-                                    <select name="role" value={formData.role || u.role || "artist"} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]">
+                                    <select value={currentRole} disabled className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm bg-stone-50 text-stone-500 cursor-not-allowed">
                                         <option value="artist">Artist</option>
-                                        <option value="organizer">Organizer</option>
-                                        <option value="user">User / Patron</option>
+                                        <option value="artLover">Art Lover</option>
                                     </select>
+                                    <p className="text-xs text-stone-400 mt-1">Role is chosen during account creation.</p>
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium text-stone-600 mb-2 block">Verified Status</label>
@@ -269,37 +329,40 @@ export default function SettingsPage() {
                             <div><label className="text-sm font-medium text-stone-600 mb-1 block">Bio</label><textarea name="bio" value={formData.bio ?? u.bio ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)] resize-none" rows={3} /></div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div><label className="text-sm font-medium text-stone-600 mb-1 block">Location</label><input name="location" value={formData.location ?? u.location ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
-                                <div>
-                                    <label className="text-sm font-medium text-stone-600 mb-1 block">Primary Art Form</label>
-                                    <select name="primaryArtForm" value={formData.primaryArtForm || u.primaryArtForm || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-[var(--secondary-color)] mb-2">
-                                        <option value="">Select Art Form...</option>
-                                        {artForms.map(af => (
-                                            <option key={af} value={af}>{af}</option>
-                                        ))}
-                                    </select>
-                                    <div className="flex gap-2">
-                                        <input type="text" placeholder="Add custom art form" value={customArtForm} onChange={e => setCustomArtForm(e.target.value)} className="flex-1 border border-stone-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" />
-                                        <Button type="button" onClick={() => { addArtForm(customArtForm); setFormData(prev => ({...prev, primaryArtForm: customArtForm})); setCustomArtForm(""); }} className="bg-stone-100 text-stone-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-stone-200">Add</Button>
+                                {isArtist && (
+                                    <div>
+                                        <label className="text-sm font-medium text-stone-600 mb-1 block">Primary Art Form</label>
+                                        <select name="primaryArtForm" value={formData.primaryArtForm || u.primaryArtForm || ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-[var(--secondary-color)] mb-2">
+                                            <option value="">Select Art Form...</option>
+                                            {artForms.map(af => (
+                                                <option key={af} value={af}>{af}</option>
+                                            ))}
+                                        </select>
+                                        <div className="flex gap-2">
+                                            <input type="text" placeholder="Add custom art form" value={customArtForm} onChange={e => setCustomArtForm(e.target.value)} className="flex-1 border border-stone-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" />
+                                            <Button type="button" onClick={() => { addArtForm(customArtForm); setFormData(prev => ({...prev, primaryArtForm: customArtForm})); setCustomArtForm(""); }} className="bg-stone-100 text-stone-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-stone-200">Add</Button>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div><label className="text-sm font-medium text-stone-600 mb-1 block">Specializations (comma separated)</label><input name="specializations" value={formData.specializations?.join(', ') || ""} onChange={e => setFormData(prev => ({...prev, specializations: e.target.value.split(',').map(s => s.trimStart())}))} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
+                                {isArtist && <div><label className="text-sm font-medium text-stone-600 mb-1 block">Specializations (comma separated)</label><input name="specializations" value={formData.specializations?.join(', ') || ""} onChange={e => setFormData(prev => ({...prev, specializations: e.target.value.split(',').map(s => s.trimStart())}))} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>}
                                 <div><label className="text-sm font-medium text-stone-600 mb-1 block">Languages (comma separated)</label><input name="languages" value={formData.languages?.join(', ') || ""} onChange={e => setFormData(prev => ({...prev, languages: e.target.value.split(',').map(s => s.trimStart())}))} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" /></div>
                             </div>
                             <div><label className="text-sm font-medium text-stone-600 mb-1 block">Education</label><input name="education" value={formData.education ?? u.education ?? ""} onChange={handleChange} className="w-full border border-stone-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-[var(--secondary-color)]" placeholder="Your educational background" /></div>
-                            
-                            <div>
-                                <label className="text-sm font-medium text-stone-600 mb-2 block">Pricing / Services</label>
-                                {(formData.pricing || []).map((p, i) => (
-                                    <div key={i} className="flex gap-2 mb-2 items-center">
-                                        <input type="text" placeholder="Service (e.g. 1hr Session)" value={p.service || ""} onChange={e => handlePricingChange(i, 'service', e.target.value)} className="flex-1 border border-stone-300 rounded-lg px-3 py-2 text-sm" />
-                                        <input type="number" placeholder="Price" value={p.price || ""} onChange={e => handlePricingChange(i, 'price', e.target.value)} className="w-32 border border-stone-300 rounded-lg px-3 py-2 text-sm" />
-                                        <Button type="button" onClick={() => removePricing(i)} className="text-red-500"><span className="material-symbols-outlined text-lg">delete</span></Button>
-                                    </div>
-                                ))}
-                                <Button type="button" onClick={addPricing} className="text-[var(--secondary-color)] text-sm font-semibold flex items-center gap-1 mt-1"><span className="material-symbols-outlined text-base">add</span> Add Service</Button>
-                            </div>
+                            {isArtist && (
+                                <div>
+                                    <label className="text-sm font-medium text-stone-600 mb-2 block">Pricing / Services</label>
+                                    {(formData.pricing || []).map((p, i) => (
+                                        <div key={i} className="flex flex-col gap-2 mb-2 sm:flex-row sm:items-center">
+                                            <input type="text" placeholder="Service (e.g. 1hr Session)" value={p.service || ""} onChange={e => handlePricingChange(i, 'service', e.target.value)} className="w-full min-w-0 flex-1 border border-stone-300 rounded-lg px-3 py-2 text-sm" />
+                                            <input type="number" placeholder="Price" value={p.price || ""} onChange={e => handlePricingChange(i, 'price', e.target.value)} className="w-full sm:w-32 sm:flex-none border border-stone-300 rounded-lg px-3 py-2 text-sm" />
+                                            <Button type="button" onClick={() => removePricing(i)} className="self-start sm:self-auto sm:flex-none text-red-500"><span className="material-symbols-outlined text-lg">delete</span></Button>
+                                        </div>
+                                    ))}
+                                    <Button type="button" onClick={addPricing} className="text-[var(--secondary-color)] text-sm font-semibold flex items-center gap-1 mt-1"><span className="material-symbols-outlined text-base">add</span> Add Service</Button>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="text-sm font-medium text-stone-600 mb-2 block">Social Links</label>
@@ -371,7 +434,7 @@ export default function SettingsPage() {
                         </div>
                     )}
 
-                    {activeTab === "billing" && (
+                    {isArtist && activeTab === "billing" && (
                         <div className="space-y-6">
                             <h2 className="text-xl font-bold text-[var(--text-primary)] mb-4 serif-font">Billing & Payments</h2>
                             <div className="bg-stone-50 rounded-lg p-5">
