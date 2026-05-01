@@ -1,8 +1,8 @@
-"use client";
-import { Loader } from "@/components/ui";
-import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+'use client';
+import { Loader } from '@/components/ui';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 /**
  * Wraps any page that requires authentication.
@@ -11,29 +11,29 @@ import { useEffect } from "react";
  * - If authenticated: renders children normally.
  */
 export default function RequireAuth({ children }) {
-    const { user, loading } = useAuth();
-    const router = useRouter();
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
-    useEffect(() => {
-        if (!loading && !user) {
-            router.replace("/login");
-        }
-    }, [loading, user, router]);
-
-    if (loading) {
-        return (
-            <Loader
-                className="min-h-screen bg-[#FDFBF7]"
-                label="Loading KalaSetu..."
-                labelClassName="text-sm text-stone-500 font-medium"
-                size="text-5xl"
-            />
-        );
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/login');
     }
+  }, [loading, user, router]);
 
-    if (!user) {
-        return null;
-    }
+  if (loading) {
+    return (
+      <Loader
+        className="min-h-screen bg-[#FDFBF7]"
+        label="Loading KalaSetu..."
+        labelClassName="text-sm text-stone-500 font-medium"
+        size="text-5xl"
+      />
+    );
+  }
 
-    return <>{children}</>;
+  if (!user) {
+    return null;
+  }
+
+  return <>{children}</>;
 }

@@ -1,20 +1,20 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 :root {
-  --primary-color: #8B4513;
-  --secondary-color: #D2691E;
-  --accent-color: #DAA520;
-  --bg-color: #FDFBF7;
-  --text-primary: #3E2723;
-  --text-secondary: #5D4037;
-  --surface-color: #FFFFFF;
-  --terracotta: #E07A5F;
+  --primary-color: #8b4513;
+  --secondary-color: #d2691e;
+  --accent-color: #daa520;
+  --bg-color: #fdfbf7;
+  --text-primary: #3e2723;
+  --text-secondary: #5d4037;
+  --surface-color: #ffffff;
+  --terracotta: #e07a5f;
   --deep-teal: #264653;
-  --cream: #F4F1DE;
-  --sage: #81B29A;
-  --sand: #F2CC8F;
-  --dark-brown: #3E2723;
-  --gold: #C5A065;
+  --cream: #f4f1de;
+  --sage: #81b29a;
+  --sand: #f2cc8f;
+  --dark-brown: #3e2723;
+  --gold: #c5a065;
 }
 
 @theme inline {
@@ -184,31 +184,31 @@ h4,
   animation: fadeIn 0.5s ease-out forwards;
 }
 
-.stagger-children>* {
+.stagger-children > * {
   opacity: 0;
   animation: fadeInUp 0.5s ease-out forwards;
 }
 
-.stagger-children>*:nth-child(1) {
+.stagger-children > *:nth-child(1) {
   animation-delay: 0.1s;
 }
 
-.stagger-children>*:nth-child(2) {
+.stagger-children > *:nth-child(2) {
   animation-delay: 0.2s;
 }
 
-.stagger-children>*:nth-child(3) {
+.stagger-children > *:nth-child(3) {
   animation-delay: 0.3s;
 }
 
-.stagger-children>*:nth-child(4) {
+.stagger-children > *:nth-child(4) {
   animation-delay: 0.4s;
 }
 
-.stagger-children>*:nth-child(5) {
+.stagger-children > *:nth-child(5) {
   animation-delay: 0.5s;
 }
 
-.stagger-children>*:nth-child(6) {
+.stagger-children > *:nth-child(6) {
   animation-delay: 0.6s;
 }
