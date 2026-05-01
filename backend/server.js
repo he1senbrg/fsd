@@ -48,17 +48,19 @@ NotificationService.setIO(io);
 
 // middleware
 const allowedOrigins = [
-    process.env.FRONTEND_URL || 'http://localhost:3000',
-    'http://localhost:3000',
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  'http://localhost:3000',
 ];
 app.use(helmet());
-app.use(cors({
+app.use(
+  cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
-        callback(new Error(`CORS: origin ${origin} not allowed`));
+      if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS: origin ${origin} not allowed`));
     },
     credentials: true,
-}));
+  }),
+);
 app.use(morgan('dev'));
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
@@ -67,16 +69,16 @@ app.use(generalLimiter);
 
 // health
 app.get('/api/health', (req, res) => {
-    const statusCode = dbConnected ? 200 : 503;
+  const statusCode = dbConnected ? 200 : 503;
 
-    res.status(statusCode).json({
-        status: dbConnected ? 'success' : 'degraded',
-        message: dbConnected
-            ? 'KalaSetu API is running'
-            : 'KalaSetu API is running but database is unavailable',
-        database: dbConnected ? 'connected' : 'disconnected',
-        timestamp: new Date().toISOString(),
-    });
+  res.status(statusCode).json({
+    status: dbConnected ? 'success' : 'degraded',
+    message: dbConnected
+      ? 'KalaSetu API is running'
+      : 'KalaSetu API is running but database is unavailable',
+    database: dbConnected ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // routes
@@ -103,15 +105,15 @@ app.use('/api/art-forms', artFormRoutes);
 
 // 404
 app.use((req, res, next) => {
-    next(new AppError(`Cannot find ${req.originalUrl} on this server`, 404));
+  next(new AppError(`Cannot find ${req.originalUrl} on this server`, 404));
 });
 
 app.use(globalErrorHandler);
 
 const PORT = process.env.PORT || 5000;
 const startServer = async () => {
-    server.listen(PORT, () => {
-        console.log(`
+  server.listen(PORT, () => {
+    console.log(`
 ╔══════════════════════════════════════════╗
 ║   KalaSetu API Server                    ║
 ║   Running on port ${PORT}                   ║
@@ -119,16 +121,16 @@ const startServer = async () => {
 ║   API: http://localhost:${PORT}/api         ║
 ╚══════════════════════════════════════════╝
     `);
-    });
+  });
 
-    try {
-        await connectDB();
-        dbConnected = true;
-        startCampaignScheduler();
-    } catch (err) {
-        console.error(`Database startup error: ${err.message}`);
-        console.error('Server is running in degraded mode until database connectivity is restored.');
-    }
+  try {
+    await connectDB();
+    dbConnected = true;
+    startCampaignScheduler();
+  } catch (err) {
+    console.error(`Database startup error: ${err.message}`);
+    console.error('Server is running in degraded mode until database connectivity is restored.');
+  }
 };
 
 startServer();

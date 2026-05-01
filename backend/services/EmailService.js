@@ -1,37 +1,37 @@
 const nodemailer = require('nodemailer');
 
 class EmailService {
-    constructor() {
-        this.transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT,
-            secure: false,
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
-    }
+  constructor() {
+    this.transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: false,
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+    });
+  }
 
-    async sendEmail({ to, subject, html }) {
-        try {
-            await this.transporter.sendMail({
-                from: `"KalaSetu" <${process.env.SMTP_USER}>`,
-                to,
-                subject,
-                html,
-            });
-            console.log(`Email sent to ${to}: ${subject}`);
-        } catch (err) {
-            console.error(`Email failed to ${to}:`, err.message);
-        }
+  async sendEmail({ to, subject, html }) {
+    try {
+      await this.transporter.sendMail({
+        from: `"KalaSetu" <${process.env.SMTP_USER}>`,
+        to,
+        subject,
+        html,
+      });
+      console.log(`Email sent to ${to}: ${subject}`);
+    } catch (err) {
+      console.error(`Email failed to ${to}:`, err.message);
     }
+  }
 
-    async sendWelcome(user) {
-        await this.sendEmail({
-            to: user.email,
-            subject: 'Welcome to KalaSetu!',
-            html: `
+  async sendWelcome(user) {
+    await this.sendEmail({
+      to: user.email,
+      subject: 'Welcome to KalaSetu!',
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #7c3aed;">Welcome to KalaSetu, ${user.fullName}!</h1>
           <p>We're thrilled to have you join our community of artists and art lovers.</p>
@@ -42,15 +42,15 @@ class EmailService {
           </a>
         </div>
       `,
-        });
-    }
+    });
+  }
 
-    async sendPasswordReset(user, resetToken) {
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-        await this.sendEmail({
-            to: user.email,
-            subject: 'Reset Your Password — KalaSetu',
-            html: `
+  async sendPasswordReset(user, resetToken) {
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    await this.sendEmail({
+      to: user.email,
+      subject: 'Reset Your Password — KalaSetu',
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #7c3aed;">Password Reset</h1>
           <p>Hi ${user.fullName}, you requested a password reset.</p>
@@ -62,14 +62,14 @@ class EmailService {
           <p style="margin-top: 16px; color: #666;">If you didn't request this, please ignore this email.</p>
         </div>
       `,
-        });
-    }
+    });
+  }
 
-    async sendBookingConfirmation(user, order) {
-        await this.sendEmail({
-            to: user.email,
-            subject: `Booking Confirmed — ${order.orderId}`,
-            html: `
+  async sendBookingConfirmation(user, order) {
+    await this.sendEmail({
+      to: user.email,
+      subject: `Booking Confirmed — ${order.orderId}`,
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #7c3aed;">Booking Confirmed! 🎉</h1>
           <p>Hi ${user.fullName}, your booking has been confirmed.</p>
@@ -81,14 +81,14 @@ class EmailService {
           </a>
         </div>
       `,
-        });
-    }
+    });
+  }
 
-    async sendOrderConfirmation(user, order) {
-        await this.sendEmail({
-            to: user.email,
-            subject: `Order Confirmed — ${order.orderId}`,
-            html: `
+  async sendOrderConfirmation(user, order) {
+    await this.sendEmail({
+      to: user.email,
+      subject: `Order Confirmed — ${order.orderId}`,
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #7c3aed;">Order Confirmed! 🛍️</h1>
           <p>Hi ${user.fullName}, your order has been placed successfully.</p>
@@ -100,14 +100,14 @@ class EmailService {
           </a>
         </div>
       `,
-        });
-    }
+    });
+  }
 
-    async sendCampaignFunded(user, campaign) {
-        await this.sendEmail({
-            to: user.email,
-            subject: `Campaign Funded — ${campaign.title} 🎉`,
-            html: `
+  async sendCampaignFunded(user, campaign) {
+    await this.sendEmail({
+      to: user.email,
+      subject: `Campaign Funded — ${campaign.title} 🎉`,
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #7c3aed;">Congratulations! 🎉</h1>
           <p>Hi ${user.fullName}, your campaign "<strong>${campaign.title}</strong>" has been successfully funded!</p>
@@ -116,35 +116,35 @@ class EmailService {
           <p><strong>Backers:</strong> ${campaign.backerCount}</p>
         </div>
       `,
-        });
-    }
+    });
+  }
 
-    async sendApplicationStatus(user, opportunity, status) {
-        await this.sendEmail({
-            to: user.email,
-            subject: `Application ${status} — ${opportunity.title}`,
-            html: `
+  async sendApplicationStatus(user, opportunity, status) {
+    await this.sendEmail({
+      to: user.email,
+      subject: `Application ${status} — ${opportunity.title}`,
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #7c3aed;">Application Update</h1>
           <p>Hi ${user.fullName}, your application for "<strong>${opportunity.title}</strong>" has been <strong>${status}</strong>.</p>
         </div>
       `,
-        });
-    }
+    });
+  }
 
-    async sendCampaignRefund(user, campaign) {
-        await this.sendEmail({
-            to: user.email,
-            subject: `Campaign Refund — ${campaign.title}`,
-            html: `
+  async sendCampaignRefund(user, campaign) {
+    await this.sendEmail({
+      to: user.email,
+      subject: `Campaign Refund — ${campaign.title}`,
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h1 style="color: #7c3aed;">Campaign Refund</h1>
           <p>Hi ${user.fullName}, the campaign "<strong>${campaign.title}</strong>" did not reach its funding goal.</p>
           <p>Your contribution has been refunded as per our all-or-nothing policy.</p>
         </div>
       `,
-        });
-    }
+    });
+  }
 }
 
 module.exports = new EmailService();

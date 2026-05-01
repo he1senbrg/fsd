@@ -1,13 +1,13 @@
 const mongoose = require('mongoose');
 
 const commentSchema = new mongoose.Schema(
-    {
-        post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
-        author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-        text: { type: String, required: [true, 'Comment text is required'] },
-        parentComment: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
-    },
-    { timestamps: true }
+  {
+    post: { type: mongoose.Schema.Types.ObjectId, ref: 'Post', required: true },
+    author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    text: { type: String, required: [true, 'Comment text is required'] },
+    parentComment: { type: mongoose.Schema.Types.ObjectId, ref: 'Comment', default: null },
+  },
+  { timestamps: true },
 );
 
 commentSchema.index({ post: 1, createdAt: -1 });

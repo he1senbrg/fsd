@@ -1,16 +1,16 @@
 const mongoose = require('mongoose');
 
 const availabilitySlotSchema = new mongoose.Schema(
-    {
-        artist: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-        date: { type: Date, required: true },
-        status: {
-            type: String,
-            enum: ['free', 'booked'],
-            default: 'free',
-        },
+  {
+    artist: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    date: { type: Date, required: true },
+    status: {
+      type: String,
+      enum: ['free', 'booked'],
+      default: 'free',
     },
-    { timestamps: true }
+  },
+  { timestamps: true },
 );
 
 availabilitySlotSchema.index({ artist: 1, date: 1 }, { unique: true });

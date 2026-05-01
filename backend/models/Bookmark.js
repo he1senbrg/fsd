@@ -1,11 +1,11 @@
 const mongoose = require('mongoose');
 
 const bookmarkSchema = new mongoose.Schema(
-    {
-        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-        opportunity: { type: mongoose.Schema.Types.ObjectId, ref: 'Opportunity', required: true },
-    },
-    { timestamps: true }
+  {
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    opportunity: { type: mongoose.Schema.Types.ObjectId, ref: 'Opportunity', required: true },
+  },
+  { timestamps: true },
 );
 
 bookmarkSchema.index({ user: 1, opportunity: 1 }, { unique: true });
