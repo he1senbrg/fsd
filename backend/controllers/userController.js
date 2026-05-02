@@ -10,316 +10,331 @@ const { uploadBuffer } = require('../utils/blobStorage');
 
 // GET /api/users/:id
 exports.getUserProfile = catchAsync(async (req, res, next) => {
-    const user = await User.findById(req.params.id).select('-payoutDetails -notificationPrefs -privacySettings');
-    if (!user) {
-        return next(new AppError('User not found', 404));
-    }
+  const user = await User.findById(req.params.id).select(
+    '-payoutDetails -notificationPrefs -privacySettings',
+  );
+  if (!user) {
+    return next(new AppError('User not found', 404));
+  }
 
-    // check if follows this user
-    let isFollowing = false;
-    if (req.user) {
-        const follow = await Follow.findOne({ follower: req.user._id, followee: user._id });
-        isFollowing = !!follow;
-    }
+  // check if follows this user
+  let isFollowing = false;
+  if (req.user) {
+    const follow = await Follow.findOne({ follower: req.user._id, followee: user._id });
+    isFollowing = !!follow;
+  }
 
-    res.status(200).json({
-        status: 'success',
-        data: { user, isFollowing },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { user, isFollowing },
+  });
 });
 
 // GET /api/users/:id/portfolio
 exports.getUserPortfolio = catchAsync(async (req, res) => {
-    const filter = { author: req.params.id };
-    if (req.query.type) filter.postType = req.query.type;
+  const filter = { author: req.params.id };
+  if (req.query.type) filter.postType = req.query.type;
 
-    const posts = await Post.find(filter).sort({ createdAt: -1 });
+  const posts = await Post.find(filter).sort({ createdAt: -1 });
 
-    res.status(200).json({
-        status: 'success',
-        data: { posts },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { posts },
+  });
 });
 
 // GET /api/users/:id/reviews
 exports.getUserReviews = catchAsync(async (req, res) => {
-    const reviews = await Review.find({ target: req.params.id })
-        .populate('reviewer', 'fullName avatar')
-        .sort({ createdAt: -1 });
+  const reviews = await Review.find({ target: req.params.id })
+    .populate('reviewer', 'fullName avatar')
+    .sort({ createdAt: -1 });
 
-    res.status(200).json({
-        status: 'success',
-        data: { reviews },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { reviews },
+  });
 });
 
 // POST /api/users/:id/reviews
 exports.addReview = catchAsync(async (req, res, next) => {
-    const targetId = req.params.id;
-    const reviewerId = req.user._id;
+  const targetId = req.params.id;
+  const reviewerId = req.user._id;
 
-    if (targetId === reviewerId.toString()) {
-        return next(new AppError('You cannot review yourself', 400));
-    }
+  if (targetId === reviewerId.toString()) {
+    return next(new AppError('You cannot review yourself', 400));
+  }
 
-    const { rating, text } = req.body;
-    if (!rating || rating < 1 || rating > 5) {
-        return next(new AppError('Please provide a valid rating between 1 and 5', 400));
-    }
+  const { rating, text } = req.body;
+  if (!rating || rating < 1 || rating > 5) {
+    return next(new AppError('Please provide a valid rating between 1 and 5', 400));
+  }
 
-    const targetUser = await User.findById(targetId);
-    if (!targetUser) {
-        return next(new AppError('User not found', 404));
-    }
+  const targetUser = await User.findById(targetId);
+  if (!targetUser) {
+    return next(new AppError('User not found', 404));
+  }
 
-    const review = await Review.findOneAndUpdate(
-        { reviewer: reviewerId, target: targetId },
-        { rating, text },
-        { new: true, upsert: true, runValidators: true }
-    );
+  const review = await Review.findOneAndUpdate(
+    { reviewer: reviewerId, target: targetId },
+    { rating, text },
+    { new: true, upsert: true, runValidators: true },
+  );
 
-    const allReviews = await Review.find({ target: targetId });
-    const totalRating = allReviews.reduce((sum, rev) => sum + rev.rating, 0);
-    const avgRating = totalRating / allReviews.length;
+  const allReviews = await Review.find({ target: targetId });
+  const totalRating = allReviews.reduce((sum, rev) => sum + rev.rating, 0);
+  const avgRating = totalRating / allReviews.length;
 
-    targetUser.rating = avgRating.toFixed(1);
-    targetUser.reviewCount = allReviews.length;
-    await targetUser.save({ validateBeforeSave: false });
+  targetUser.rating = avgRating.toFixed(1);
+  targetUser.reviewCount = allReviews.length;
+  await targetUser.save({ validateBeforeSave: false });
 
-    const populatedReview = await Review.findById(review._id).populate('reviewer', 'fullName avatar');
-    res.status(200).json({ status: 'success', data: { review: populatedReview } });
+  const populatedReview = await Review.findById(review._id).populate('reviewer', 'fullName avatar');
+  res.status(200).json({ status: 'success', data: { review: populatedReview } });
 });
 
 // POST /api/users/:id/follow (follow/unfollow)
 exports.toggleFollow = catchAsync(async (req, res, next) => {
-    const followeeId = req.params.id;
-    const followerId = req.user._id;
+  const followeeId = req.params.id;
+  const followerId = req.user._id;
 
-    if (followerId.toString() === followeeId) {
-        return next(new AppError('You cannot follow yourself', 400));
-    }
+  if (followerId.toString() === followeeId) {
+    return next(new AppError('You cannot follow yourself', 400));
+  }
 
-    const followee = await User.findById(followeeId);
-    if (!followee) {
-        return next(new AppError('User not found', 404));
-    }
+  const followee = await User.findById(followeeId);
+  if (!followee) {
+    return next(new AppError('User not found', 404));
+  }
 
-    const existingFollow = await Follow.findOne({ follower: followerId, followee: followeeId });
+  const existingFollow = await Follow.findOne({ follower: followerId, followee: followeeId });
 
-    if (existingFollow) {
-        // unfollow
-        await Follow.deleteOne({ _id: existingFollow._id });
-        await User.findByIdAndUpdate(followerId, { $inc: { followingCount: -1 } });
-        await User.findByIdAndUpdate(followeeId, { $inc: { followerCount: -1 } });
+  if (existingFollow) {
+    // unfollow
+    await Follow.deleteOne({ _id: existingFollow._id });
+    await User.findByIdAndUpdate(followerId, { $inc: { followingCount: -1 } });
+    await User.findByIdAndUpdate(followeeId, { $inc: { followerCount: -1 } });
 
-        res.status(200).json({ status: 'success', data: { following: false } });
-    } else {
-        // follow
-        await Follow.create({ follower: followerId, followee: followeeId });
-        await User.findByIdAndUpdate(followerId, { $inc: { followingCount: 1 } });
-        await User.findByIdAndUpdate(followeeId, { $inc: { followerCount: 1 } });
+    res.status(200).json({ status: 'success', data: { following: false } });
+  } else {
+    // follow
+    await Follow.create({ follower: followerId, followee: followeeId });
+    await User.findByIdAndUpdate(followerId, { $inc: { followingCount: 1 } });
+    await User.findByIdAndUpdate(followeeId, { $inc: { followerCount: 1 } });
 
-        // notify
-        NotificationService.notifyFollow(followeeId, followerId, req.user.fullName).catch(() => { });
+    // notify
+    NotificationService.notifyFollow(followeeId, followerId, req.user.fullName).catch(() => {});
 
-        res.status(200).json({ status: 'success', data: { following: true } });
-    }
+    res.status(200).json({ status: 'success', data: { following: true } });
+  }
 });
 
 // GET /api/users/:id/followers
 exports.getFollowers = catchAsync(async (req, res) => {
-    const follows = await Follow.find({ followee: req.params.id })
-        .populate('follower', 'fullName avatar title primaryArtForm');
+  const follows = await Follow.find({ followee: req.params.id }).populate(
+    'follower',
+    'fullName avatar title primaryArtForm',
+  );
 
-    const followers = follows.map((f) => f.follower);
+  const followers = follows.map((f) => f.follower);
 
-    res.status(200).json({
-        status: 'success',
-        data: { followers },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { followers },
+  });
 });
 
 // GET /api/users/:id/following
 exports.getFollowing = catchAsync(async (req, res) => {
-    const follows = await Follow.find({ follower: req.params.id })
-        .populate('followee', 'fullName avatar title primaryArtForm');
+  const follows = await Follow.find({ follower: req.params.id }).populate(
+    'followee',
+    'fullName avatar title primaryArtForm',
+  );
 
-    const following = follows.map((f) => f.followee);
+  const following = follows.map((f) => f.followee);
 
-    res.status(200).json({
-        status: 'success',
-        data: { following },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { following },
+  });
 });
 
 // GET /api/users/me/settings
 exports.getSettings = catchAsync(async (req, res) => {
-    const user = await User.findById(req.user._id);
-    res.status(200).json({
-        status: 'success',
-        data: { user },
-    });
+  const user = await User.findById(req.user._id);
+  res.status(200).json({
+    status: 'success',
+    data: { user },
+  });
 });
 
 // PUT /api/users/me/profile
 exports.updateProfile = catchAsync(async (req, res) => {
-    const allowedFields = [
-        'fullName', 'email', 'role', 'verified', 'coverImage', 'bio', 'title', 'location', 'phone', 'primaryArtForm',
-        'specializations', 'languages', 'education', 'pricing', 'socialLinks',
-    ];
-    const updates = {};
-    allowedFields.forEach((field) => {
-        if (req.body[field] !== undefined) updates[field] = req.body[field];
-    });
+  const allowedFields = [
+    'fullName',
+    'email',
+    'role',
+    'verified',
+    'coverImage',
+    'bio',
+    'title',
+    'location',
+    'phone',
+    'primaryArtForm',
+    'specializations',
+    'languages',
+    'education',
+    'pricing',
+    'socialLinks',
+  ];
+  const updates = {};
+  allowedFields.forEach((field) => {
+    if (req.body[field] !== undefined) updates[field] = req.body[field];
+  });
 
-    const user = await User.findByIdAndUpdate(req.user._id, updates, {
-        new: true,
-        runValidators: true,
-    });
+  const user = await User.findByIdAndUpdate(req.user._id, updates, {
+    new: true,
+    runValidators: true,
+  });
 
-    res.status(200).json({
-        status: 'success',
-        data: { user },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { user },
+  });
 });
 
 // PUT /api/users/me/avatar
 exports.updateAvatar = catchAsync(async (req, res, next) => {
-    if (!req.file) {
-        return next(new AppError('Please upload an image', 400));
-    }
+  if (!req.file) {
+    return next(new AppError('Please upload an image', 400));
+  }
 
-    // upload to az blob storage
-    const result = await uploadBuffer(req.file.buffer, req.file.mimetype, 'avatars');
+  // upload to az blob storage
+  const result = await uploadBuffer(req.file.buffer, req.file.mimetype, 'avatars');
 
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        { avatar: result.url },
-        { new: true }
-    );
+  const user = await User.findByIdAndUpdate(req.user._id, { avatar: result.url }, { new: true });
 
-    res.status(200).json({
-        status: 'success',
-        data: { user },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { user },
+  });
 });
 
 // PUT /api/users/me/cover
 exports.updateCover = catchAsync(async (req, res, next) => {
-    if (!req.file) {
-        return next(new AppError('Please upload an image', 400));
-    }
+  if (!req.file) {
+    return next(new AppError('Please upload an image', 400));
+  }
 
-    const result = await uploadBuffer(req.file.buffer, req.file.mimetype, 'covers');
+  const result = await uploadBuffer(req.file.buffer, req.file.mimetype, 'covers');
 
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        { coverImage: result.url },
-        { new: true }
-    );
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { coverImage: result.url },
+    { new: true },
+  );
 
-    res.status(200).json({
-        status: 'success',
-        data: { user },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { user },
+  });
 });
 
 // PUT /api/users/me/password
 exports.updatePassword = catchAsync(async (req, res, next) => {
-    const { currentPassword, newPassword } = req.body;
+  const { currentPassword, newPassword } = req.body;
 
-    const user = await User.findById(req.user._id).select('+password');
-    if (!(await user.comparePassword(currentPassword))) {
-        return next(new AppError('Current password is incorrect', 401));
-    }
+  const user = await User.findById(req.user._id).select('+password');
+  if (!(await user.comparePassword(currentPassword))) {
+    return next(new AppError('Current password is incorrect', 401));
+  }
 
-    user.password = newPassword;
-    await user.save();
+  user.password = newPassword;
+  await user.save();
 
-    const token = require('../utils/tokenUtils').generateToken(user._id);
+  const token = require('../utils/tokenUtils').generateToken(user._id);
 
-    res.status(200).json({
-        status: 'success',
-        message: 'Password updated successfully',
-        data: { token },
-    });
+  res.status(200).json({
+    status: 'success',
+    message: 'Password updated successfully',
+    data: { token },
+  });
 });
 
 // PUT /api/users/me/notifications
 exports.updateNotificationPrefs = catchAsync(async (req, res) => {
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        { notificationPrefs: req.body },
-        { new: true }
-    );
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { notificationPrefs: req.body },
+    { new: true },
+  );
 
-    res.status(200).json({
-        status: 'success',
-        data: { notificationPrefs: user.notificationPrefs },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { notificationPrefs: user.notificationPrefs },
+  });
 });
 
 // PUT /api/users/me/privacy
 exports.updatePrivacySettings = catchAsync(async (req, res) => {
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        { privacySettings: req.body },
-        { new: true }
-    );
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { privacySettings: req.body },
+    { new: true },
+  );
 
-    res.status(200).json({
-        status: 'success',
-        data: { privacySettings: user.privacySettings },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { privacySettings: user.privacySettings },
+  });
 });
 
 // POST /api/users/me/payment-method — stub
 exports.addPaymentMethod = catchAsync(async (req, res) => {
-    res.status(200).json({
-        status: 'success',
-        message: 'Payment method saved (stub)',
-    });
+  res.status(200).json({
+    status: 'success',
+    message: 'Payment method saved (stub)',
+  });
 });
 
 // PUT /api/users/me/payout
 exports.updatePayoutDetails = catchAsync(async (req, res) => {
-    const { bankName, accountNumber, ifscCode, upiId } = req.body;
+  const { bankName, accountNumber, ifscCode, upiId } = req.body;
 
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        { payoutDetails: { bankName, accountNumber, ifscCode, upiId } },
-        { new: true }
-    );
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    { payoutDetails: { bankName, accountNumber, ifscCode, upiId } },
+    { new: true },
+  );
 
-    res.status(200).json({
-        status: 'success',
-        data: { payoutDetails: user.payoutDetails },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { payoutDetails: user.payoutDetails },
+  });
 });
 
 // POST /api/users/me/verify
 exports.requestVerification = catchAsync(async (req, res, next) => {
-    const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id);
 
-    if (user.verified) {
-        return next(new AppError('You are already verified', 400));
-    }
+  if (user.verified) {
+    return next(new AppError('You are already verified', 400));
+  }
 
-    if (user.reviewCount < 5) {
-        return next(new AppError('You need at least 5 reviews to request verification', 400));
-    }
+  if (user.reviewCount < 5) {
+    return next(new AppError('You need at least 5 reviews to request verification', 400));
+  }
 
-    if (user.profileStrength < 80) {
-        return next(new AppError('Your profile must be at least 80% complete', 400));
-    }
+  if (user.profileStrength < 80) {
+    return next(new AppError('Your profile must be at least 80% complete', 400));
+  }
 
-    user.verified = true;
-    user.verifiedDate = new Date();
-    await user.save();
+  user.verified = true;
+  user.verifiedDate = new Date();
+  await user.save();
 
-    res.status(200).json({
-        status: 'success',
-        message: 'Profile verified successfully!',
-        data: { user },
-    });
+  res.status(200).json({
+    status: 'success',
+    message: 'Profile verified successfully!',
+    data: { user },
+  });
 });

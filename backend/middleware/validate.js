@@ -3,12 +3,12 @@ const AppError = require('../utils/AppError');
 
 // check express-validator results
 const validate = (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        const messages = errors.array().map((e) => e.msg);
-        return next(new AppError(messages.join('. '), 400));
-    }
-    next();
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const messages = errors.array().map((e) => e.msg);
+    return next(new AppError(messages.join('. '), 400));
+  }
+  next();
 };
 
 module.exports = validate;

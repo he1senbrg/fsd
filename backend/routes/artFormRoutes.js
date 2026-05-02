@@ -4,8 +4,9 @@ const { authenticate } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.route('/')
-    .get(artFormController.getAllArtForms)
-    .post(authenticate, artFormController.createArtForm);
+router
+  .route('/')
+  .get(artFormController.getAllArtForms)
+  .post(authenticate, artFormController.createArtForm);
 
 module.exports = router;

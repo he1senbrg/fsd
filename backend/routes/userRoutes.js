@@ -5,8 +5,16 @@ const { uploadAvatar, uploadCover } = require('../middleware/upload');
 
 // public/optional
 router.get('/me/settings', authenticate, ctrl.getSettings);
-router.get('/me/applications', authenticate, require('../controllers/opportunityController').getMyApplications);
-router.get('/me/bookmarks', authenticate, require('../controllers/opportunityController').getMyBookmarks);
+router.get(
+  '/me/applications',
+  authenticate,
+  require('../controllers/opportunityController').getMyApplications,
+);
+router.get(
+  '/me/bookmarks',
+  authenticate,
+  require('../controllers/opportunityController').getMyBookmarks,
+);
 
 router.get('/:id', optionalAuth, ctrl.getUserProfile);
 router.get('/:id/portfolio', ctrl.getUserPortfolio);
