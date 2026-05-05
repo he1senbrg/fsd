@@ -1,6 +1,10 @@
 'use client';
 import AppShell from '@/components/AppShell';
-import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
+import {
+  ImageVerificationCard,
+  ImageVerificationSummary,
+  useImageVerification,
+} from '@/components/ImageVerification';
 import { Button, Loader } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -556,7 +560,9 @@ export default function ProductDetailPage() {
                 Add New Images
               </label>
 
-              {editVerifications.length > 0 && <ImageVerificationSummary verifications={editVerifications} />}
+              {editVerifications.length > 0 && (
+                <ImageVerificationSummary verifications={editVerifications} />
+              )}
 
               <input
                 ref={fileInputRef}
@@ -589,7 +595,9 @@ export default function ProductDetailPage() {
                         disabled={editImageUploading || !getValidEditImages().length}
                         className="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 disabled:opacity-50"
                       >
-                        {editImageUploading ? 'Uploading...' : `Upload ${getValidEditImages().length} Image(s)`}
+                        {editImageUploading
+                          ? 'Uploading...'
+                          : `Upload ${getValidEditImages().length} Image(s)`}
                       </Button>
                     )}
                   </>

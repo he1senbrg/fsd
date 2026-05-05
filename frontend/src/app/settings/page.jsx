@@ -473,7 +473,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   {coverVerifications.length > 0 && (
-                    <div className='mt-3'>
+                    <div className="mt-3">
                       <ImageVerificationSummary verifications={coverVerifications} />
                     </div>
                   )}

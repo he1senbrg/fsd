@@ -34,6 +34,7 @@ This project has separate frontend and backend apps. Install dependencies for bo
     ```
 
 4. Create environment files:
+
     Create a `.env` file inside `backend/` and a `.env.local` file inside `frontend/`.
 
 5. Start the backend:

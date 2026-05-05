@@ -79,7 +79,8 @@ exports.getProduct = catchAsync(async (req, res, next) => {
 
 // POST /api/products (create pdt listing)
 exports.createProduct = catchAsync(async (req, res) => {
-  const { name, description, category, price, originalPrice, region, stock, badge, tags } = req.body;
+  const { name, description, category, price, originalPrice, region, stock, badge, tags } =
+    req.body;
 
   let images = [];
   if (req.files && req.files.length > 0) {
@@ -93,7 +94,10 @@ exports.createProduct = catchAsync(async (req, res) => {
   let parsedTags = [];
   if (tags) {
     if (typeof tags === 'string') {
-      parsedTags = tags.split(',').map((tag) => tag.trim()).filter(Boolean);
+      parsedTags = tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
     } else if (Array.isArray(tags)) {
       parsedTags = tags;
     }
@@ -146,7 +150,10 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
   // parse tags if provided
   if (updateData.tags) {
     if (typeof updateData.tags === 'string') {
-      updateData.tags = updateData.tags.split(',').map((tag) => tag.trim()).filter(Boolean);
+      updateData.tags = updateData.tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
     } else if (Array.isArray(updateData.tags)) {
       updateData.tags = updateData.tags;
     }

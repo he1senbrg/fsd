@@ -1,6 +1,10 @@
 'use client';
 import AppShell from '@/components/AppShell';
-import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
+import {
+  ImageVerificationCard,
+  ImageVerificationSummary,
+  useImageVerification,
+} from '@/components/ImageVerification';
 import { Button, FormInput, FormSelect, FormTextarea, Loader, SurfaceCard } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -84,7 +88,7 @@ export default function CreateProductPage() {
       showToast('Stock must be 0 or more.', 'warning');
       return;
     }
-    
+
     const validImages = getValidImages();
     if (validImages.length === 0) {
       showToast('Please upload at least one verified product image.', 'warning');
@@ -102,12 +106,12 @@ export default function CreateProductPage() {
       fd.append('region', form.region);
       fd.append('stock', form.stock);
       if (form.badge.trim()) fd.append('badge', form.badge.trim());
-      
+
       const customTagsList = customTags
         .split(',')
         .map((tag) => tag.trim())
         .filter(Boolean);
-      
+
       if (customTagsList.length > 0) {
         fd.append('tags', JSON.stringify(customTagsList));
       }
@@ -176,7 +180,9 @@ export default function CreateProductPage() {
               </label>
 
               {/* Verification Summary */}
-              {verifications.length > 0 && <ImageVerificationSummary verifications={verifications} />}
+              {verifications.length > 0 && (
+                <ImageVerificationSummary verifications={verifications} />
+              )}
 
               <input
                 ref={fileInputRef}

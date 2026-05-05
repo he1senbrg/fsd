@@ -55,12 +55,10 @@ exports.getOpportunity = catchAsync(async (req, res, next) => {
     const bm = await Bookmark.findOne({ user: req.user._id, opportunity: opp._id });
     isBookmarked = !!bm;
   }
-  res
-    .status(200)
-    .json({
-      status: 'success',
-      data: { opportunity: { ...opp.toObject(), hasApplied, isBookmarked } },
-    });
+  res.status(200).json({
+    status: 'success',
+    data: { opportunity: { ...opp.toObject(), hasApplied, isBookmarked } },
+  });
 });
 
 exports.createOpportunity = catchAsync(async (req, res) => {
