@@ -79,13 +79,23 @@ exports.getProduct = catchAsync(async (req, res, next) => {
 
 // POST /api/products (create pdt listing)
 exports.createProduct = catchAsync(async (req, res) => {
-  const { name, description, category, price, originalPrice, region, stock, badge } = req.body;
+  const { name, description, category, price, originalPrice, region, stock, badge, tags } = req.body;
 
   let images = [];
   if (req.files && req.files.length > 0) {
     for (const file of req.files) {
       const result = await uploadBuffer(file.buffer, file.mimetype, 'products');
       images.push(result.url);
+    }
+  }
+
+  // parse tags if it's a string
+  let parsedTags = [];
+  if (tags) {
+    if (typeof tags === 'string') {
+      parsedTags = tags.split(',').map((tag) => tag.trim()).filter(Boolean);
+    } else if (Array.isArray(tags)) {
+      parsedTags = tags;
     }
   }
 
@@ -100,6 +110,8 @@ exports.createProduct = catchAsync(async (req, res) => {
     region,
     stock,
     badge,
+    tags: parsedTags,
+    imageVerificationStatus: 'verified',
   });
 
   res.status(201).json({
@@ -129,6 +141,15 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
       newImages.push(result.url);
     }
     updateData.images = newImages;
+  }
+
+  // parse tags if provided
+  if (updateData.tags) {
+    if (typeof updateData.tags === 'string') {
+      updateData.tags = updateData.tags.split(',').map((tag) => tag.trim()).filter(Boolean);
+    } else if (Array.isArray(updateData.tags)) {
+      updateData.tags = updateData.tags;
+    }
   }
 
   const updated = await Product.findByIdAndUpdate(req.params.id, updateData, {

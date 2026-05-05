@@ -19,6 +19,11 @@ const productSchema = new mongoose.Schema(
     rating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    imageVerificationStatus: {
+      type: String,
+      enum: ['pending', 'verified', 'failed', 'skipped'],
+      default: 'pending',
+    },
   },
   { timestamps: true },
 );

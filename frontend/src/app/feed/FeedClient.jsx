@@ -1,5 +1,6 @@
 'use client';
 import AppShell from '@/components/AppShell';
+import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
 import VideoPlayer from '@/components/VideoPlayer';
 import { Button, Loader, PillTab } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
@@ -22,7 +23,6 @@ export default function FeedClient() {
   const [activeFilter, setActiveFilter] = useState('All Posts');
   const [postContent, setPostContent] = useState('');
   const [posting, setPosting] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedVideoFile, setSelectedVideoFile] = useState(null);
   const [expandedComments, setExpandedComments] = useState(new Set());
   const [commentsMap, setCommentsMap] = useState({});
@@ -35,6 +35,17 @@ export default function FeedClient() {
   const lastScrolledPostIdRef = useRef(null);
   const photoInputRef = useRef(null);
   const videoInputRef = useRef(null);
+
+  // img verification hook
+  const {
+    imageFiles: selectedFiles,
+    imagePreviews,
+    verifications,
+    handleImageChange: handleImageVerificationChange,
+    removeImage: removeVerifiedImage,
+    recordVerification,
+    getValidImages,
+  } = useImageVerification();
 
   const openLightbox = (images, index) => setLightbox({ images, index });
   const closeLightbox = () => setLightbox(null);
@@ -100,6 +111,7 @@ export default function FeedClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFilter]);
 
+
   useEffect(() => {
     const targetPostId = searchParams.get('post');
     if (!targetPostId || loading || postsLoading) return;
@@ -118,19 +130,25 @@ export default function FeedClient() {
   }, [searchParams, posts, loading, postsLoading]);
 
   const handleCreatePost = async () => {
-    if (!postContent.trim() && selectedFiles.length === 0 && !selectedVideoFile) return;
+    const validImages = getValidImages();
+    if (!postContent.trim() && validImages.length === 0 && !selectedVideoFile) return;
     setPosting(true);
     try {
       const form = new FormData();
       form.append('text', postContent);
-      selectedFiles.forEach((f) => form.append('media', f));
+      
+      // only add verified images
+      validImages.forEach((f) => form.append('media', f));
       if (selectedVideoFile) form.append('media', selectedVideoFile);
+      
       const res = await postAPI.createPost(form);
       const newPost = res.data?.post || res.data;
       if (newPost) setPosts((prev) => [newPost, ...prev]);
       setPostContent('');
-      setSelectedFiles([]);
+      
+      removeVerifiedImage(0);
       setSelectedVideoFile(null);
+      showToast('Post created!', 'success');
     } catch (e) {
       if (e?.status !== 401) console.error(e);
       showToast('Failed to create post.', 'error');
@@ -335,39 +353,33 @@ export default function FeedClient() {
               />
             </div>
             {/* files */}
-            {(selectedFiles.length > 0 || selectedVideoFile) && (
-              <div className="flex flex-wrap gap-2 mb-3">
-                {selectedFiles.map((f, i) => (
-                  <div key={i} className="relative">
-                    <Image
-                      src={URL.createObjectURL(f)}
-                      className="w-16 h-16 rounded-lg object-cover"
-                      alt="preview"
-                      width={64}
-                      height={64}
-                      unoptimized
-                      loader={({ src }) => src}
+            {(imagePreviews.length > 0 || selectedVideoFile) && (
+              <div className="mb-3">
+                {imagePreviews.length > 0 && <ImageVerificationSummary verifications={verifications} />}
+                <div className="flex flex-wrap gap-2">
+                  {imagePreviews.map((src, i) => (
+                    <ImageVerificationCard
+                      key={i}
+                      imageFile={selectedFiles[i]}
+                      imagePreview={src}
+                      verificationMode="feed"
+                      onVerify={(result) => recordVerification(i, result)}
+                      onRemove={() => removeVerifiedImage(i)}
                     />
-                    <Button
-                      onClick={() => setSelectedFiles((prev) => prev.filter((_, j) => j !== i))}
-                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                ))}
-                {selectedVideoFile && (
-                  <div className="relative flex items-center gap-2 bg-stone-100 rounded-lg px-3 py-2 text-xs text-stone-600">
-                    <span className="material-symbols-outlined text-sm">movie</span>
-                    {selectedVideoFile.name}
-                    <Button
-                      onClick={() => setSelectedVideoFile(null)}
-                      className="ml-1 text-red-500 font-bold"
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                )}
+                  ))}
+                  {selectedVideoFile && (
+                    <div className="relative flex items-center gap-2 bg-stone-100 rounded-lg px-3 py-2 text-xs text-stone-600">
+                      <span className="material-symbols-outlined text-sm">movie</span>
+                      {selectedVideoFile.name}
+                      <Button
+                        onClick={() => setSelectedVideoFile(null)}
+                        className="ml-1 text-red-500 font-bold"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             <input
@@ -376,7 +388,10 @@ export default function FeedClient() {
               accept="image/*"
               multiple
               className="hidden"
-              onChange={(e) => setSelectedFiles(Array.from(e.target.files))}
+              onChange={(e) => {
+                const files = Array.from(e.target.files || []);
+                handleImageVerificationChange(files, 10);
+              }}
             />
             <input
               ref={videoInputRef}

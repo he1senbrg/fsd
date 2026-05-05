@@ -1,5 +1,6 @@
 'use client';
 import AppShell from '@/components/AppShell';
+import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
 import { Button, FormInput, FormSelect, FormTextarea, Loader, SurfaceCard } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -35,8 +36,16 @@ export default function CreateProductPage() {
   const fileInputRef = useRef(null);
 
   const [submitting, setSubmitting] = useState(false);
-  const [imagePreviews, setImagePreviews] = useState([]);
-  const [imageFiles, setImageFiles] = useState([]);
+  const [customTags, setCustomTags] = useState('');
+  const {
+    imageFiles,
+    imagePreviews,
+    verifications,
+    handleImageChange: handleImageVerificationChange,
+    removeImage: removeVerifiedImage,
+    recordVerification,
+    getValidImages,
+  } = useImageVerification();
 
   const [form, setForm] = useState({
     name: '',
@@ -54,16 +63,11 @@ export default function CreateProductPage() {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const combined = [...imageFiles, ...files].slice(0, 5); // max 5 images
-    setImageFiles(combined);
-    setImagePreviews(combined.map((f) => URL.createObjectURL(f)));
+    handleImageVerificationChange(files, 5);
   };
 
   const removeImage = (idx) => {
-    const newFiles = imageFiles.filter((_, i) => i !== idx);
-    const newPreviews = imagePreviews.filter((_, i) => i !== idx);
-    setImageFiles(newFiles);
-    setImagePreviews(newPreviews);
+    removeVerifiedImage(idx);
   };
 
   const handleSubmit = async (e) => {
@@ -80,8 +84,10 @@ export default function CreateProductPage() {
       showToast('Stock must be 0 or more.', 'warning');
       return;
     }
-    if (imageFiles.length === 0) {
-      showToast('Please upload at least one product image.', 'warning');
+    
+    const validImages = getValidImages();
+    if (validImages.length === 0) {
+      showToast('Please upload at least one verified product image.', 'warning');
       return;
     }
 
@@ -96,7 +102,18 @@ export default function CreateProductPage() {
       fd.append('region', form.region);
       fd.append('stock', form.stock);
       if (form.badge.trim()) fd.append('badge', form.badge.trim());
-      imageFiles.forEach((f) => fd.append('images', f));
+      
+      const customTagsList = customTags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter(Boolean);
+      
+      if (customTagsList.length > 0) {
+        fd.append('tags', JSON.stringify(customTagsList));
+      }
+
+      // only add verified images
+      validImages.forEach((f) => fd.append('images', f));
 
       await productAPI.createProduct(fd);
       showToast('Product listed successfully!', 'success');
@@ -157,6 +174,10 @@ export default function CreateProductPage() {
               <label className="text-sm font-semibold text-[var(--text-primary)] mb-2 block">
                 Product Images * <span className="font-normal text-stone-400">(up to 5)</span>
               </label>
+
+              {/* Verification Summary */}
+              {verifications.length > 0 && <ImageVerificationSummary verifications={verifications} />}
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -167,24 +188,14 @@ export default function CreateProductPage() {
               />
               <div className="flex flex-wrap gap-3">
                 {imagePreviews.map((src, i) => (
-                  <div
+                  <ImageVerificationCard
                     key={i}
-                    className="relative w-24 h-24 rounded-xl overflow-hidden border border-stone-200 group"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={src}
-                      alt={`preview ${i + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(i)}
-                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <span className="material-symbols-outlined text-xs">close</span>
-                    </button>
-                  </div>
+                    imageFile={imageFiles[i]}
+                    imagePreview={src}
+                    verificationMode="marketplace"
+                    onVerify={(result) => recordVerification(i, result)}
+                    onRemove={() => removeImage(i)}
+                  />
                 ))}
                 {imagePreviews.length < 5 && (
                   <button
@@ -197,6 +208,19 @@ export default function CreateProductPage() {
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* Custom tags */}
+            <div>
+              <label className="text-sm font-semibold text-[var(--text-primary)] mb-1 block">
+                Tags <span className="font-normal text-stone-400">(optional)</span>
+              </label>
+              <FormInput
+                value={customTags}
+                onChange={(e) => setCustomTags(e.target.value)}
+                placeholder="e.g., handmade, organic, sustainable (comma-separated)"
+                type="text"
+              />
             </div>
 
             {/* name */}

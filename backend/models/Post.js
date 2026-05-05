@@ -28,6 +28,11 @@ const postSchema = new mongoose.Schema(
     likeCount: { type: Number, default: 0 },
     commentCount: { type: Number, default: 0 },
     shareCount: { type: Number, default: 0 },
+    imageVerificationStatus: {
+      type: String,
+      enum: ['pending', 'verified', 'failed', 'skipped'],
+      default: 'pending',
+    },
   },
   { timestamps: true },
 );

@@ -1,9 +1,14 @@
 'use client';
 import AppShell from '@/components/AppShell';
+import {
+  ImageVerificationCard,
+  ImageVerificationSummary,
+  useImageVerification,
+} from '@/components/ImageVerification';
 import { Button, Loader } from '@/components/ui';
+import { useArtForms } from '@/context/ArtFormContext';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { useArtForms } from '@/context/ArtFormContext';
 import { userAPI } from '@/lib/api';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
@@ -28,6 +33,25 @@ export default function SettingsPage() {
   const [coverUploading, setCoverUploading] = useState(false);
   const avatarInputRef = useRef(null);
   const coverInputRef = useRef(null);
+
+  const {
+    imageFiles: avatarFiles,
+    imagePreviews: avatarPreviews,
+    verifications: avatarVerifications,
+    handleImageChange: handleAvatarImageChange,
+    removeImage: removeAvatarImage,
+    recordVerification: recordAvatarVerification,
+    getValidImages: getValidAvatarImages,
+  } = useImageVerification();
+  const {
+    imageFiles: coverFiles,
+    imagePreviews: coverPreviews,
+    verifications: coverVerifications,
+    handleImageChange: handleCoverImageChange,
+    removeImage: removeCoverImage,
+    recordVerification: recordCoverVerification,
+    getValidImages: getValidCoverImages,
+  } = useImageVerification();
 
   const [formData, setFormData] = useState({});
   const { artForms, addArtForm } = useArtForms();
@@ -170,7 +194,7 @@ export default function SettingsPage() {
       if (activeTab === 'profile') {
         const payload = { ...formData };
         delete payload.role;
-        // check if arrays are arrays
+
         if (typeof payload.specializations === 'string')
           payload.specializations = payload.specializations
             .split(',')
@@ -201,45 +225,67 @@ export default function SettingsPage() {
     setSaving(false);
   };
 
-  const handleAvatarChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleAvatarChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    handleAvatarImageChange(files, 1);
+    e.target.value = '';
+  };
+
+  const uploadAvatarImage = async () => {
+    const validImages = getValidAvatarImages();
+    if (!validImages.length) {
+      showToast('Please verify and select a valid profile photo.', 'warning');
+      return;
+    }
+
     setAvatarUploading(true);
     try {
       const form = new FormData();
-      form.append('avatar', file);
+      form.append('avatar', validImages[0]);
       const res = await userAPI.updateAvatar(form);
       const updated = res.data?.user || res.data;
       updateUser(updated);
       setSettings((prev) => ({ ...(prev || {}), avatar: updated.avatar }));
+      removeAvatarImage(0);
       showToast('Profile photo updated!', 'success');
     } catch (err) {
       console.error(err);
       showToast(err?.message || 'Failed to upload photo.', 'error');
     }
     setAvatarUploading(false);
+  };
+
+  const handleCoverChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    handleCoverImageChange(files, 1);
     e.target.value = '';
   };
 
-  const handleCoverChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadCoverImage = async () => {
+    const validImages = getValidCoverImages();
+    if (!validImages.length) {
+      showToast('Please verify and select a valid cover image.', 'warning');
+      return;
+    }
+
     setCoverUploading(true);
     try {
       const form = new FormData();
-      form.append('cover', file);
+      form.append('cover', validImages[0]);
       const res = await userAPI.updateCover(form);
       const updated = res.data?.user || res.data;
       updateUser(updated);
       setSettings((prev) => ({ ...(prev || {}), coverImage: updated.coverImage }));
       setFormData((prev) => ({ ...prev, coverImage: updated.coverImage }));
+      removeCoverImage(0);
       showToast('Cover image updated!', 'success');
     } catch (err) {
       console.error(err);
       showToast(err?.message || 'Failed to upload cover image.', 'error');
     }
     setCoverUploading(false);
-    e.target.value = '';
   };
 
   const handlePasswordSave = async () => {
@@ -345,14 +391,38 @@ export default function SettingsPage() {
                     className="hidden"
                     onChange={handleAvatarChange}
                   />
-                  <Button
-                    type="button"
-                    onClick={() => avatarInputRef.current?.click()}
-                    disabled={avatarUploading}
-                    className="text-sm text-[var(--secondary-color)] font-semibold hover:underline disabled:opacity-50"
-                  >
-                    {avatarUploading ? 'Uploading...' : 'Change Photo'}
-                  </Button>
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      type="button"
+                      onClick={() => avatarInputRef.current?.click()}
+                      disabled={avatarUploading}
+                      className="text-sm text-[var(--secondary-color)] font-semibold hover:underline disabled:opacity-50 text-left"
+                    >
+                      {avatarUploading ? 'Uploading...' : 'Choose Photo'}
+                    </Button>
+                    {avatarVerifications.length > 0 && (
+                      <ImageVerificationSummary verifications={avatarVerifications} />
+                    )}
+                    {avatarPreviews.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        <ImageVerificationCard
+                          imageFile={avatarFiles[0]}
+                          imagePreview={avatarPreviews[0]}
+                          verificationMode="profile"
+                          onVerify={(result) => recordAvatarVerification(0, result)}
+                          onRemove={() => removeAvatarImage(0)}
+                        />
+                        <Button
+                          type="button"
+                          onClick={uploadAvatarImage}
+                          disabled={avatarUploading || !getValidAvatarImages().length}
+                          className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-lg font-bold hover:bg-[var(--secondary-color)] disabled:opacity-50"
+                        >
+                          {avatarUploading ? 'Uploading...' : 'Upload Photo'}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <p className="text-xs text-stone-400 mt-1">JPG, PNG, max 2MB</p>
                 </div>
               </div>
@@ -390,16 +460,42 @@ export default function SettingsPage() {
                     </div>
                     <div className="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <p className="text-xs text-stone-500">JPG or PNG, max 5MB</p>
+                      <div className="flex flex-col items-start sm:items-end gap-2">
+                        <Button
+                          type="button"
+                          onClick={() => coverInputRef.current?.click()}
+                          disabled={coverUploading}
+                          className="text-sm text-[var(--secondary-color)] font-semibold hover:underline disabled:opacity-50"
+                        >
+                          {coverUploading ? 'Uploading...' : 'Choose Cover'}
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  {coverVerifications.length > 0 && (
+                    <div className='mt-3'>
+                      <ImageVerificationSummary verifications={coverVerifications} />
+                    </div>
+                  )}
+                  {coverPreviews.length > 0 && (
+                    <div className="mt-3 flex flex-col gap-3">
+                      <ImageVerificationCard
+                        imageFile={coverFiles[0]}
+                        imagePreview={coverPreviews[0]}
+                        verificationMode="profile"
+                        onVerify={(result) => recordCoverVerification(0, result)}
+                        onRemove={() => removeCoverImage(0)}
+                      />
                       <Button
                         type="button"
-                        onClick={() => coverInputRef.current?.click()}
-                        disabled={coverUploading}
-                        className="text-sm text-[var(--secondary-color)] font-semibold hover:underline disabled:opacity-50"
+                        onClick={uploadCoverImage}
+                        disabled={coverUploading || !getValidCoverImages().length}
+                        className="bg-[var(--primary-color)] text-white px-4 py-2 rounded-lg font-bold hover:bg-[var(--secondary-color)] disabled:opacity-50"
                       >
                         {coverUploading ? 'Uploading...' : 'Upload Cover'}
                       </Button>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
