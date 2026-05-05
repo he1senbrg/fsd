@@ -1,6 +1,10 @@
 'use client';
 import AppShell from '@/components/AppShell';
-import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
+import {
+  ImageVerificationCard,
+  ImageVerificationSummary,
+  useImageVerification,
+} from '@/components/ImageVerification';
 import VideoPlayer from '@/components/VideoPlayer';
 import { Button, Loader, PillTab } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
@@ -111,7 +115,6 @@ export default function FeedClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFilter]);
 
-
   useEffect(() => {
     const targetPostId = searchParams.get('post');
     if (!targetPostId || loading || postsLoading) return;
@@ -136,16 +139,16 @@ export default function FeedClient() {
     try {
       const form = new FormData();
       form.append('text', postContent);
-      
+
       // only add verified images
       validImages.forEach((f) => form.append('media', f));
       if (selectedVideoFile) form.append('media', selectedVideoFile);
-      
+
       const res = await postAPI.createPost(form);
       const newPost = res.data?.post || res.data;
       if (newPost) setPosts((prev) => [newPost, ...prev]);
       setPostContent('');
-      
+
       removeVerifiedImage(0);
       setSelectedVideoFile(null);
       showToast('Post created!', 'success');
@@ -355,7 +358,9 @@ export default function FeedClient() {
             {/* files */}
             {(imagePreviews.length > 0 || selectedVideoFile) && (
               <div className="mb-3">
-                {imagePreviews.length > 0 && <ImageVerificationSummary verifications={verifications} />}
+                {imagePreviews.length > 0 && (
+                  <ImageVerificationSummary verifications={verifications} />
+                )}
                 <div className="flex flex-wrap gap-2">
                   {imagePreviews.map((src, i) => (
                     <ImageVerificationCard

@@ -1,14 +1,18 @@
 'use client';
 import AppShell from '@/components/AppShell';
-import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
 import {
-    Button,
-    FormInput,
-    FormSelect,
-    FormStepper,
-    FormTextarea,
-    Loader,
-    SurfaceCard,
+  ImageVerificationCard,
+  ImageVerificationSummary,
+  useImageVerification,
+} from '@/components/ImageVerification';
+import {
+  Button,
+  FormInput,
+  FormSelect,
+  FormStepper,
+  FormTextarea,
+  Loader,
+  SurfaceCard,
 } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -259,7 +263,9 @@ export default function CreateCampaignPage() {
                   Cover Image *
                 </label>
 
-                {verifications.length > 0 && <ImageVerificationSummary verifications={verifications} />}
+                {verifications.length > 0 && (
+                  <ImageVerificationSummary verifications={verifications} />
+                )}
 
                 <input
                   ref={fileInputRef}
@@ -268,7 +274,7 @@ export default function CreateCampaignPage() {
                   className="hidden"
                   onChange={handleImageChange}
                 />
-                
+
                 <div className="space-y-3">
                   {imagePreviews.length > 0 ? (
                     <>

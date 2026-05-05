@@ -3,7 +3,6 @@
 import { loadModel, verifyImage } from '@/utils/imageClassifier';
 import { useEffect, useRef, useState } from 'react';
 
-
 // img verification card component
 // Displays verification status, confidence, and suggested tags
 export function ImageVerificationCard({
@@ -65,8 +64,10 @@ export function ImageVerificationCard({
     );
   }
 
-  const statusColor = verification.valid === true ? 'green' : verification.valid === false ? 'red' : 'yellow';
-  const statusIcon = verification.valid === true ? 'check' : verification.valid === false ? '!' : 'help';
+  const statusColor =
+    verification.valid === true ? 'green' : verification.valid === false ? 'red' : 'yellow';
+  const statusIcon =
+    verification.valid === true ? 'check' : verification.valid === false ? '!' : 'help';
 
   return (
     <div className="relative w-24 h-24 rounded-xl overflow-hidden border border-stone-200">
@@ -84,7 +85,9 @@ export function ImageVerificationCard({
               : 'bg-amber-500'
         }`}
       >
-        <span className={`text-[12px] ${verification.valid === false ? 'font-bold leading-none' : 'material-symbols-outlined'}`}>
+        <span
+          className={`text-[12px] ${verification.valid === false ? 'font-bold leading-none' : 'material-symbols-outlined'}`}
+        >
           {statusIcon}
         </span>
       </div>
@@ -106,23 +109,24 @@ export function ImageVerificationCard({
 export function ImageVerificationSummary({ verifications }) {
   if (!verifications || verifications.length === 0) return null;
 
-  const failed = verifications.filter((v) => v.valid === false).length;
+  const failed = verifications.filter((v) => v?.valid === false).length;
   const total = verifications.length;
 
   if (failed === 0) return null;
-  else return (
-    <div className="rounded-lg border-dashed border-1 border-red-600 p-3 mb-4">
-      <div className="flex items-center justify-between">
-        {
-          total === 1 ? (
+  else
+    return (
+      <div className="rounded-lg border-dashed border-1 border-red-600 p-3 mb-4">
+        <div className="flex items-center justify-between">
+          {total === 1 ? (
             <div className="text-xs text-red-700">Image might include sensitive content.</div>
           ) : (
-            <div className="text-xs text-red-700">{failed} of {total} images might include sensitive content.</div>
-          )
-        }
+            <div className="text-xs text-red-700">
+              {failed} of {total} images might include sensitive content.
+            </div>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
 }
 
 // img upload with verification hook

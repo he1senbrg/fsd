@@ -8,7 +8,11 @@ import {
   FormTextarea,
   SurfaceCard,
 } from '@/components/ui';
-import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
+import {
+  ImageVerificationCard,
+  ImageVerificationSummary,
+  useImageVerification,
+} from '@/components/ImageVerification';
 import { useToast } from '@/context/ToastContext';
 import { eventAPI, mediaAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
@@ -179,7 +183,9 @@ export default function EventCreatePage() {
                   Cover Image
                 </label>
 
-                {verifications.length > 0 && <ImageVerificationSummary verifications={verifications} />}
+                {verifications.length > 0 && (
+                  <ImageVerificationSummary verifications={verifications} />
+                )}
 
                 <input
                   ref={coverInputRef}

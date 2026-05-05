@@ -22,7 +22,7 @@ export const loadModel = async () => {
   if (model) return model;
   if (modelLoading) {
     while (modelLoading) {
-      await new Promise(r => setTimeout(r, 100));
+      await new Promise((r) => setTimeout(r, 100));
     }
     return model;
   }
@@ -57,7 +57,7 @@ export const classifyImage = async (imageFile) => {
             try {
               const predictions = await modelInstance.classify(img);
               console.log('NSFW detection predictions:', predictions);
-              
+
               // nsfw score
               const nsfwPredictions = predictions.filter((p) =>
                 NSFW_CATEGORIES.includes(p.className),
@@ -180,7 +180,6 @@ export const verifyImage = async (imageFile, options = {}) => {
     };
   }
 };
-
 
 export const unloadModel = () => {
   if (model) {
