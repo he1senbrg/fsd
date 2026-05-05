@@ -1,13 +1,14 @@
 'use client';
 import AppShell from '@/components/AppShell';
+import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
 import {
-  Button,
-  FormInput,
-  FormSelect,
-  FormStepper,
-  FormTextarea,
-  Loader,
-  SurfaceCard,
+    Button,
+    FormInput,
+    FormSelect,
+    FormStepper,
+    FormTextarea,
+    Loader,
+    SurfaceCard,
 } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -32,8 +33,18 @@ export default function CreateCampaignPage() {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+
+  // img verification hook
+  const {
+    imageFiles,
+    imagePreviews,
+    verifications,
+    handleImageChange: handleImageVerificationChange,
+    removeImage: removeVerifiedImage,
+    recordVerification,
+    getValidImages,
+  } = useImageVerification();
 
   const [form, setForm] = useState({
     title: '',
@@ -51,17 +62,27 @@ export default function CreateCampaignPage() {
   const set = (field) => (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleImageChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImagePreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    handleImageVerificationChange(files, 1);
+  };
+
+  const uploadVerifiedImage = async () => {
+    const validImages = getValidImages();
+    if (!validImages.length) {
+      showToast('Please verify and select a valid image.', 'warning');
+      return;
+    }
+
+    const file = validImages[0];
     setImageUploading(true);
     try {
       const res = await mediaAPI.upload(file);
       setForm((prev) => ({ ...prev, coverImage: res.data?.url || '' }));
       showToast('Image uploaded!', 'success');
+      removeVerifiedImage(0);
     } catch (err) {
       showToast('Image upload failed. Please try again.', 'error');
-      setImagePreview(null);
     }
     setImageUploading(false);
   };
@@ -237,6 +258,9 @@ export default function CreateCampaignPage() {
                 <label className="text-sm font-semibold text-[var(--text-primary)] mb-2 block">
                   Cover Image *
                 </label>
+
+                {verifications.length > 0 && <ImageVerificationSummary verifications={verifications} />}
+
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -244,41 +268,56 @@ export default function CreateCampaignPage() {
                   className="hidden"
                   onChange={handleImageChange}
                 />
-                <div
-                  className="border-2 border-dashed border-stone-300 rounded-xl p-8 text-center hover:border-[var(--primary-color)] transition-colors cursor-pointer relative overflow-hidden"
-                  onClick={() => fileInputRef.current?.click()}
-                  style={imagePreview ? { padding: 0, border: 'none' } : {}}
-                >
-                  {imagePreview ? (
-                    <div className="relative">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={imagePreview}
-                        alt="Cover preview"
-                        className="w-full h-64 object-cover rounded-xl"
-                      />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity rounded-xl">
-                        <span className="text-white text-sm font-medium flex items-center gap-1">
-                          <span className="material-symbols-outlined text-lg">edit</span> Change
-                          Image
-                        </span>
-                      </div>
-                      {imageUploading && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl">
-                          <span className="text-white text-sm">Uploading...</span>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
+                
+                <div className="space-y-3">
+                  {imagePreviews.length > 0 ? (
                     <>
+                      <div className="flex gap-3">
+                        {imagePreviews.map((src, i) => (
+                          <ImageVerificationCard
+                            key={i}
+                            imageFile={imageFiles[i]}
+                            imagePreview={src}
+                            verificationMode="crowdfunding"
+                            onVerify={(result) => recordVerification(i, result)}
+                            onRemove={() => removeVerifiedImage(i)}
+                          />
+                        ))}
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={uploadVerifiedImage}
+                        disabled={imageUploading || !getValidImages().length}
+                        className="w-full bg-[var(--primary-color)] text-white px-4 py-2 rounded-lg font-bold hover:bg-[var(--secondary-color)] disabled:opacity-50"
+                      >
+                        {imageUploading ? 'Uploading...' : 'Upload Selected Image'}
+                      </Button>
+                    </>
+                  ) : (
+                    <div
+                      className="border-2 border-dashed border-stone-300 rounded-xl p-8 text-center hover:border-[var(--primary-color)] transition-colors cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
                       <span className="material-symbols-outlined text-4xl text-stone-400 mb-2 block">
                         cloud_upload
                       </span>
-                      <p className="text-sm text-stone-500">
-                        {imageUploading ? 'Uploading...' : 'Click to upload cover image'}
-                      </p>
+                      <p className="text-sm text-stone-500">Click to upload cover image</p>
                       <p className="text-xs text-stone-400 mt-1">JPEG, PNG up to 5MB</p>
-                    </>
+                    </div>
+                  )}
+
+                  {form.coverImage && (
+                    <div className="rounded-xl overflow-hidden bg-stone-100 aspect-video relative">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={form.coverImage}
+                        alt="Cover preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute top-2 right-2 flex items-center gap-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                        <span className="material-symbols-outlined text-sm">check</span> Uploaded
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>

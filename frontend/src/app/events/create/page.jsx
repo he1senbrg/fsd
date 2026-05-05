@@ -8,6 +8,7 @@ import {
   FormTextarea,
   SurfaceCard,
 } from '@/components/ui';
+import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
 import { useToast } from '@/context/ToastContext';
 import { eventAPI, mediaAPI } from '@/lib/api';
 import { useRouter } from 'next/navigation';
@@ -28,32 +29,48 @@ export default function EventCreatePage() {
   const [price, setPrice] = useState('');
   const [totalQty, setTotalQty] = useState('');
   const [coverImage, setCoverImage] = useState('');
-  const [imagePreview, setImagePreview] = useState('');
   const [imageUploading, setImageUploading] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const coverInputRef = useRef(null);
   const showToast = useToast();
   const router = useRouter();
 
-  const handleCoverImageChange = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // img verification hook
+  const {
+    imageFiles,
+    imagePreviews,
+    verifications,
+    handleImageChange: handleImageVerificationChange,
+    removeImage: removeVerifiedImage,
+    recordVerification,
+    getValidImages,
+  } = useImageVerification();
 
+  const handleCoverImageChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    handleImageVerificationChange(files, 1);
+  };
+
+  const uploadVerifiedImage = async () => {
+    const validImages = getValidImages();
+    if (!validImages.length) {
+      showToast('Please verify and select a valid image.', 'warning');
+      return;
+    }
+
+    const file = validImages[0];
     setImageUploading(true);
     try {
-      const previewUrl = URL.createObjectURL(file);
-      setImagePreview(previewUrl);
-
       const res = await mediaAPI.upload(file);
       setCoverImage(res.data.url);
       showToast('Image uploaded successfully!', 'success');
+      removeVerifiedImage(0);
     } catch (err) {
       console.error(err);
-      setImagePreview('');
       showToast(err?.data?.message || err?.message || 'Failed to upload image.', 'error');
     }
     setImageUploading(false);
-    e.target.value = '';
   };
 
   return (
@@ -161,38 +178,9 @@ export default function EventCreatePage() {
                 <label className="text-sm font-semibold text-[var(--text-primary)] mb-2 block">
                   Cover Image
                 </label>
-                {imagePreview ? (
-                  <div className="relative rounded-xl overflow-hidden bg-stone-200 aspect-video">
-                    <img
-                      src={imagePreview}
-                      alt="Cover preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCoverImage('');
-                        setImagePreview('');
-                        if (coverInputRef.current) coverInputRef.current.value = '';
-                      }}
-                      className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
-                    >
-                      <span className="material-symbols-outlined text-sm">close</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => coverInputRef.current?.click()}
-                    className="border-2 border-dashed border-stone-300 rounded-xl p-8 text-center hover:border-[var(--primary-color)] transition-colors cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-4xl text-stone-400 mb-2 block">
-                      {imageUploading ? 'hourglass_top' : 'image'}
-                    </span>
-                    <p className="text-sm text-stone-500">
-                      {imageUploading ? 'Uploading...' : 'Click to upload event banner'}
-                    </p>
-                  </div>
-                )}
+
+                {verifications.length > 0 && <ImageVerificationSummary verifications={verifications} />}
+
                 <input
                   ref={coverInputRef}
                   type="file"
@@ -201,6 +189,64 @@ export default function EventCreatePage() {
                   onChange={handleCoverImageChange}
                   disabled={imageUploading}
                 />
+
+                <div className="space-y-3">
+                  {imagePreviews.length > 0 ? (
+                    <>
+                      <div className="flex gap-3">
+                        {imagePreviews.map((src, i) => (
+                          <ImageVerificationCard
+                            key={i}
+                            imageFile={imageFiles[i]}
+                            imagePreview={src}
+                            verificationMode="events"
+                            onVerify={(result) => recordVerification(i, result)}
+                            onRemove={() => removeVerifiedImage(i)}
+                          />
+                        ))}
+                      </div>
+                      <Button
+                        type="button"
+                        onClick={uploadVerifiedImage}
+                        disabled={imageUploading || !getValidImages().length}
+                        className="w-full bg-[var(--primary-color)] text-white px-4 py-2 rounded-lg font-bold hover:bg-[var(--secondary-color)] disabled:opacity-50"
+                      >
+                        {imageUploading ? 'Uploading...' : 'Upload Image'}
+                      </Button>
+                    </>
+                  ) : (
+                    <div
+                      onClick={() => coverInputRef.current?.click()}
+                      className="border-2 border-dashed border-stone-300 rounded-xl p-8 text-center hover:border-[var(--primary-color)] transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-4xl text-stone-400 mb-2 block">
+                        image
+                      </span>
+                      <p className="text-sm text-stone-500">Click to upload event banner</p>
+                    </div>
+                  )}
+
+                  {coverImage && (
+                    <div className="relative rounded-xl overflow-hidden bg-stone-200 aspect-video">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={coverImage}
+                        alt="Cover preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoverImage('');
+                          if (coverInputRef.current) coverInputRef.current.value = '';
+                        }}
+                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600"
+                      >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}

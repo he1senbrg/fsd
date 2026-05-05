@@ -1,5 +1,6 @@
 'use client';
 import AppShell from '@/components/AppShell';
+import { ImageVerificationCard, ImageVerificationSummary, useImageVerification } from '@/components/ImageVerification';
 import { Button, Loader } from '@/components/ui';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
@@ -99,10 +100,20 @@ export default function ProductDetailPage() {
   const [showEdit, setShowEdit] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editForm, setEditForm] = useState({});
-  const [editImages, setEditImages] = useState([]);
-  const [editPreviews, setEditPreviews] = useState([]);
   const [editSaving, setEditSaving] = useState(false);
+  const [editImageUploading, setEditImageUploading] = useState(false);
   const fileInputRef = useRef(null);
+
+  // img verification hook for edit
+  const {
+    imageFiles: editImageFiles,
+    imagePreviews: editImagePreviews,
+    verifications: editVerifications,
+    handleImageChange: handleImageVerificationChange,
+    removeImage: removeEditImage,
+    recordVerification: recordEditVerification,
+    getValidImages: getValidEditImages,
+  } = useImageVerification();
 
   const isOwner = user && product && product.seller?._id === user._id;
 
@@ -133,7 +144,6 @@ export default function ProductDetailPage() {
           stock: p?.stock ?? 0,
           badge: p?.badge || '',
         });
-        setEditPreviews(p?.images || []);
         setReviews(revRes.data?.reviews || []);
       } catch (e) {
         if (cancelled) return;
@@ -210,8 +220,34 @@ export default function ProductDetailPage() {
   const handleEditImageChange = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    setEditImages(files);
-    setEditPreviews(files.map((f) => URL.createObjectURL(f)));
+    handleImageVerificationChange(files, 5);
+  };
+
+  const uploadNewImages = async () => {
+    const validImages = getValidEditImages();
+    if (!validImages.length) {
+      showToast('Please verify and select valid images.', 'warning');
+      return;
+    }
+
+    setEditImageUploading(true);
+    try {
+      const fd = new FormData();
+      Object.entries(editForm).forEach(([k, v]) => {
+        if (v !== '' && v !== undefined) fd.append(k, v);
+      });
+      validImages.forEach((f) => fd.append('images', f));
+      const res = await productAPI.updateProduct(id, fd);
+      setProduct(res.data?.product);
+      removeEditImage(0);
+      for (let i = 0; i < validImages.length; i++) {
+        removeEditImage(0);
+      }
+      showToast('Product updated!', 'success');
+    } catch (err) {
+      showToast(err?.data?.message || err?.message || 'Update failed.', 'error');
+    }
+    setEditImageUploading(false);
   };
 
   const handleEditSave = async () => {
@@ -221,11 +257,8 @@ export default function ProductDetailPage() {
       Object.entries(editForm).forEach(([k, v]) => {
         if (v !== '' && v !== undefined) fd.append(k, v);
       });
-      editImages.forEach((f) => fd.append('images', f));
       const res = await productAPI.updateProduct(id, fd);
       setProduct(res.data?.product);
-      setEditPreviews(res.data?.product?.images || editPreviews);
-      setEditImages([]);
       setShowEdit(false);
       showToast('Product updated!', 'success');
     } catch (err) {
@@ -520,8 +553,11 @@ export default function ProductDetailPage() {
             </div>
             <div className="mb-6">
               <label className="text-xs font-semibold text-stone-500 mb-2 block uppercase tracking-wide">
-                Replace Images
+                Add New Images
               </label>
+
+              {editVerifications.length > 0 && <ImageVerificationSummary verifications={editVerifications} />}
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -530,8 +566,54 @@ export default function ProductDetailPage() {
                 className="hidden"
                 onChange={handleEditImageChange}
               />
-              <div className="flex flex-wrap gap-2 mb-2">
-                {editPreviews.map((src, i) => (
+
+              <div className="space-y-3">
+                {editImagePreviews.length > 0 ? (
+                  <>
+                    <div className="flex flex-wrap gap-2">
+                      {editImagePreviews.map((src, i) => (
+                        <ImageVerificationCard
+                          key={i}
+                          imageFile={editImageFiles[i]}
+                          imagePreview={src}
+                          verificationMode="marketplace"
+                          onVerify={(result) => recordEditVerification(i, result)}
+                          onRemove={() => removeEditImage(i)}
+                        />
+                      ))}
+                    </div>
+                    {editImagePreviews.length > 0 && (
+                      <Button
+                        type="button"
+                        onClick={uploadNewImages}
+                        disabled={editImageUploading || !getValidEditImages().length}
+                        className="w-full bg-green-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-green-700 disabled:opacity-50"
+                      >
+                        {editImageUploading ? 'Uploading...' : `Upload ${getValidEditImages().length} Image(s)`}
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full border-2 border-dashed border-stone-300 rounded-lg p-4 text-center hover:border-[var(--primary-color)] transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-2xl text-stone-400 mb-1 block">
+                      add_photo_alternate
+                    </span>
+                    <span className="text-sm text-stone-500">Click to add images</span>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <label className="text-xs font-semibold text-stone-500 mb-2 block uppercase tracking-wide">
+                Current Images
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {product.images?.map((src, i) => (
                   <div
                     key={i}
                     className="relative w-16 h-16 rounded-lg overflow-hidden border border-stone-200"
@@ -540,13 +622,6 @@ export default function ProductDetailPage() {
                     <img src={src} alt={`img ${i}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-16 h-16 rounded-lg border-2 border-dashed border-stone-300 flex items-center justify-center text-stone-400 hover:border-[var(--primary-color)] transition-colors"
-                >
-                  <span className="material-symbols-outlined text-xl">add_photo_alternate</span>
-                </button>
               </div>
             </div>
             <div className="flex gap-3 justify-end">

@@ -64,7 +64,7 @@ exports.getPosts = catchAsync(async (req, res) => {
 
 // POST /api/posts (create post)
 exports.createPost = catchAsync(async (req, res) => {
-  const { text, postType, embeddedEvent, linkedProduct } = req.body;
+  const { text, postType, embeddedEvent, linkedProduct, tags } = req.body;
 
   const hashtags = extractHashtags(text);
 
@@ -82,6 +82,16 @@ exports.createPost = catchAsync(async (req, res) => {
     }
   }
 
+  // parse tags if provided
+  let parsedTags = [];
+  if (tags) {
+    if (typeof tags === 'string') {
+      parsedTags = JSON.parse(tags).filter(Boolean);
+    } else if (Array.isArray(tags)) {
+      parsedTags = tags;
+    }
+  }
+
   const post = await Post.create({
     author: req.user._id,
     text,
@@ -90,6 +100,8 @@ exports.createPost = catchAsync(async (req, res) => {
     postType: postType || 'general',
     embeddedEvent,
     linkedProduct,
+    tags: parsedTags,
+    imageVerificationStatus: media.length > 0 ? 'verified' : 'skipped',
   });
 
   const populatedPost = await Post.findById(post._id).populate(
