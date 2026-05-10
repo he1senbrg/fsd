@@ -4,6 +4,7 @@ const { authenticate } = require('../middleware/auth');
 const validate = require('../middleware/validate');
 const {
   registerValidator,
+  verifySignupOtpValidator,
   loginValidator,
   forgotPasswordValidator,
   resetPasswordValidator,
@@ -11,6 +12,13 @@ const {
 const { authLimiter } = require('../middleware/rateLimiter');
 
 router.post('/register', authLimiter, registerValidator, validate, ctrl.register);
+router.post(
+  '/register/verify-otp',
+  authLimiter,
+  verifySignupOtpValidator,
+  validate,
+  ctrl.verifySignupOtp,
+);
 router.post('/login', authLimiter, loginValidator, validate, ctrl.login);
 router.post(
   '/forgot-password',

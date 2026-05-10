@@ -39,8 +39,12 @@ export function AuthProvider({ children }) {
     return u;
   }, []);
 
-  const register = useCallback(async (fullName, email, password, role) => {
-    const res = await authAPI.register(fullName, email, password, role);
+  const requestSignupOtp = useCallback(async (fullName, email, password, role) => {
+    return await authAPI.register(fullName, email, password, role);
+  }, []);
+
+  const verifySignupOtp = useCallback(async (email, otp) => {
+    const res = await authAPI.verifySignupOtp(email, otp);
     const { token: jwt, user: u } = res.data;
     localStorage.setItem('kalasetu_token', jwt);
     setToken(jwt);
@@ -60,7 +64,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser }}>
+    <AuthContext.Provider
+      value={{ user, token, loading, login, requestSignupOtp, verifySignupOtp, logout, updateUser }}
+    >
       {children}
     </AuthContext.Provider>
   );
