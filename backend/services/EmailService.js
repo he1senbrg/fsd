@@ -15,6 +15,10 @@ class EmailService {
 
   async sendEmail({ to, subject, html }) {
     try {
+      if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+        console.warn('SMTP configuration incomplete. Email not sent.');
+        return;
+      }
       await this.transporter.sendMail({
         from: `"KalaSetu" <${process.env.SMTP_USER}>`,
         to,
@@ -24,6 +28,7 @@ class EmailService {
       console.log(`Email sent to ${to}: ${subject}`);
     } catch (err) {
       console.error(`Email failed to ${to}:`, err.message);
+      throw err;
     }
   }
 
@@ -40,6 +45,24 @@ class EmailService {
              style="display: inline-block; background: #7c3aed; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; margin-top: 16px;">
             Complete Your Profile
           </a>
+        </div>
+      `,
+    });
+  }
+
+  async sendSignupOTP({ fullName, email, otp }) {
+    await this.sendEmail({
+      to: email,
+      subject: 'Your KalaSetu signup OTP (valid for 10 minutes)',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #7c3aed;">Verify your email</h1>
+          <p>Hi ${fullName}, use the OTP below to complete your KalaSetu signup.</p>
+          <div style="margin: 20px 0; font-size: 32px; font-weight: bold; letter-spacing: 6px; color: #111;">
+            ${otp}
+          </div>
+          <p>This OTP is valid for 10 minutes.</p>
+          <p style="margin-top: 16px; color: #666;">If you did not request this, you can ignore this email.</p>
         </div>
       `,
     });

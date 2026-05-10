@@ -56,6 +56,11 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify({ fullName, email, password, role }),
     }),
+  verifySignupOtp: (email, otp) =>
+    request('/auth/register/verify-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email, otp }),
+    }),
   getMe: () => request('/auth/me'),
   logout: () => request('/auth/logout', { method: 'POST' }),
 };

@@ -4,7 +4,7 @@ import { useAuth } from '@/context/AuthContext';
 import { authAPI } from '@/lib/api';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,13 +13,117 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [otpDigits, setOtpDigits] = useState(['', '', '', '', '']);
+  const otpInputRefs = useRef([]);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpTimer, setOtpTimer] = useState(600); // 10 minutes in seconds
+  const [otpExpired, setOtpExpired] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({
+    length: false,
+    uppercase: false,
+    lowercase: false,
+    number: false,
+    special: false,
+  });
 
-  const { login, register, user, loading } = useAuth();
+  const { login, requestSignupOtp, verifySignupOtp, user, loading } = useAuth();
+
+  const evaluatePasswordStrength = (pwd) => {
+    setPasswordStrength({
+      length: pwd.length >= 8,
+      uppercase: /[A-Z]/.test(pwd),
+      lowercase: /[a-z]/.test(pwd),
+      number: /\d/.test(pwd),
+      special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>/?]/.test(pwd),
+    });
+  };
+
+  const isStrongPassword = (pw) => {
+    const re = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+    return re.test(pw);
+  };
+
+  const resetSignupOtpState = () => {
+    setOtp('');
+    setOtpDigits(['', '', '', '', '']);
+    setOtpSent(false);
+    setOtpTimer(600);
+    setOtpExpired(false);
+  };
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  const handleOtpChange = (index, value) => {
+    const numValue = value.replace(/\D/g, '').slice(0, 1);
+    const newDigits = [...otpDigits];
+    newDigits[index] = numValue;
+    setOtpDigits(newDigits);
+    setOtp(newDigits.join(''));
+
+    if (numValue && index < 4) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace') {
+      if (otpDigits[index]) {
+        const newDigits = [...otpDigits];
+        newDigits[index] = '';
+        setOtpDigits(newDigits);
+        setOtp(newDigits.join(''));
+      } else if (index > 0) {
+        otpInputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      otpInputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 4) {
+      otpInputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 5);
+    const newDigits = pastedData.split('').concat(Array(5).fill('')).slice(0, 5);
+    setOtpDigits(newDigits);
+    setOtp(newDigits.join(''));
+    if (pastedData.length === 5) {
+      otpInputRefs.current[4]?.blur();
+    } else {
+      otpInputRefs.current[pastedData.length]?.focus();
+    }
+  };
+
+  // Timer effect for OTP countdown
+  useEffect(() => {
+    if (!otpSent || otpExpired) return;
+    if (otpTimer <= 0) {
+      setOtpExpired(true);
+      return;
+    }
+    const interval = setInterval(() => {
+      setOtpTimer((prev) => {
+        if (prev <= 1) {
+          setOtpExpired(true);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [otpSent, otpTimer, otpExpired]);
   const router = useRouter();
 
   useEffect(() => {
@@ -41,6 +145,7 @@ export default function LoginPage() {
         setIsForgotPassword(false);
         setIsLogin(true);
         setPassword('');
+        resetSignupOtpState();
         return;
       }
 
@@ -52,7 +157,44 @@ export default function LoginPage() {
           setSubmitting(false);
           return;
         }
-        await register(fullName, email, password, role);
+
+        if (!isStrongPassword(password)) {
+          setError(
+            'Password must be at least 8 characters and include uppercase, lowercase, number and special character.',
+          );
+          setSubmitting(false);
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          setError('Passwords do not match.');
+          setSubmitting(false);
+          return;
+        }
+
+        if (!otpSent) {
+          await requestSignupOtp(fullName, email, password, role);
+          setOtpSent(true);
+          setOtpTimer(600);
+          setOtpExpired(false);
+          setSuccessMessage('OTP sent to your email. Check your inbox.');
+          setSubmitting(false);
+          return;
+        }
+
+        if (otpExpired) {
+          setError('OTP expired. Please request a new OTP.');
+          setSubmitting(false);
+          return;
+        }
+
+        if (!/^\d{5}$/.test(otp.trim())) {
+          setError('Please enter a valid 5-digit OTP.');
+          setSubmitting(false);
+          return;
+        }
+
+        await verifySignupOtp(email, otp.trim());
       }
       router.push('/feed');
     } catch (err) {
@@ -136,6 +278,16 @@ export default function LoginPage() {
                 setIsForgotPassword(false);
                 setError('');
                 setSuccessMessage('');
+                setPassword('');
+                setConfirmPassword('');
+                resetSignupOtpState();
+                setPasswordStrength({
+                  length: false,
+                  uppercase: false,
+                  lowercase: false,
+                  number: false,
+                  special: false,
+                });
               }}
               className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition-all ${isLogin ? 'bg-[#8B4513] text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
             >
@@ -147,6 +299,16 @@ export default function LoginPage() {
                 setIsForgotPassword(false);
                 setError('');
                 setSuccessMessage('');
+                setPassword('');
+                setConfirmPassword('');
+                resetSignupOtpState();
+                setPasswordStrength({
+                  length: false,
+                  uppercase: false,
+                  lowercase: false,
+                  number: false,
+                  special: false,
+                });
               }}
               className={`flex-1 py-2.5 rounded-full text-sm font-semibold transition-all ${!isLogin ? 'bg-[#8B4513] text-white shadow-md' : 'text-stone-600 hover:text-stone-800'}`}
             >
@@ -159,6 +321,7 @@ export default function LoginPage() {
               <Button
                 type="button"
                 onClick={() => setRole('artist')}
+                disabled={otpSent}
                 className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${role === 'artist' ? 'bg-white text-[#8B4513] shadow-sm' : 'text-stone-500 hover:text-[#3E2723]'}`}
               >
                 I&apos;m an Artist
@@ -166,24 +329,11 @@ export default function LoginPage() {
               <Button
                 type="button"
                 onClick={() => setRole('artLover')}
+                disabled={otpSent}
                 className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${role === 'artLover' ? 'bg-white text-[#8B4513] shadow-sm' : 'text-stone-500 hover:text-[#3E2723]'}`}
               >
                 I&apos;m an Art Lover
               </Button>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
-              <span className="material-symbols-outlined text-lg">error</span>
-              {error}
-            </div>
-          )}
-
-          {successMessage && (
-            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
-              <span className="material-symbols-outlined text-lg mt-0.5">check_circle</span>
-              <span>{successMessage}</span>
             </div>
           )}
 
@@ -202,7 +352,11 @@ export default function LoginPage() {
                     type="text"
                     placeholder="Your full name"
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    onChange={(e) => {
+                      setFullName(e.target.value);
+                      if (otpSent) resetSignupOtpState();
+                    }}
+                    disabled={otpSent}
                     className="block w-full rounded-lg border border-stone-200 bg-stone-50 pl-10 py-3 text-[#3E2723] text-sm focus:ring-2 focus:ring-[#8B4513] focus:border-[#8B4513] shadow-sm outline-none"
                   />
                 </div>
@@ -224,7 +378,11 @@ export default function LoginPage() {
                   placeholder="you@example.com"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (otpSent) resetSignupOtpState();
+                  }}
+                  disabled={otpSent && !isForgotPassword}
                   className="block w-full rounded-lg border border-stone-200 bg-stone-50 pl-10 py-3 text-[#3E2723] text-sm focus:ring-2 focus:ring-[#8B4513] focus:border-[#8B4513] shadow-sm outline-none"
                 />
               </div>
@@ -269,8 +427,13 @@ export default function LoginPage() {
                         setEmail(e.target.value);
                       } else {
                         setPassword(e.target.value);
+                        if (otpSent) resetSignupOtpState();
+                        if (!isLogin) {
+                          evaluatePasswordStrength(e.target.value);
+                        }
                       }
                     }}
+                    disabled={otpSent && !isLogin}
                     className="block w-full rounded-lg border border-stone-200 bg-stone-50 pl-10 pr-10 py-3 text-[#3E2723] text-sm focus:ring-2 focus:ring-[#8B4513] focus:border-[#8B4513] shadow-sm outline-none"
                   />
                   <Button
@@ -283,6 +446,213 @@ export default function LoginPage() {
                     </span>
                   </Button>
                 </div>
+
+                {/* password strength */}
+                {!isLogin && !isForgotPassword && (
+                  <div className="mt-4 p-4 bg-stone-50 rounded-lg border border-stone-200">
+                    <p className="text-xs font-semibold text-[#5D4037] mb-3">Requirements:</p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`material-symbols-outlined text-lg transition-all ${
+                            passwordStrength.length ? 'text-emerald-500' : 'text-stone-300'
+                          }`}
+                        >
+                          {passwordStrength.length ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            passwordStrength.length
+                              ? 'text-emerald-600 font-medium'
+                              : 'text-stone-500'
+                          }`}
+                        >
+                          At least 8 characters long
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`material-symbols-outlined text-lg transition-all ${
+                            passwordStrength.uppercase ? 'text-emerald-500' : 'text-stone-300'
+                          }`}
+                        >
+                          {passwordStrength.uppercase ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            passwordStrength.uppercase
+                              ? 'text-emerald-600 font-medium'
+                              : 'text-stone-500'
+                          }`}
+                        >
+                          Contains uppercase letter
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`material-symbols-outlined text-lg transition-all ${
+                            passwordStrength.lowercase ? 'text-emerald-500' : 'text-stone-300'
+                          }`}
+                        >
+                          {passwordStrength.lowercase ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            passwordStrength.lowercase
+                              ? 'text-emerald-600 font-medium'
+                              : 'text-stone-500'
+                          }`}
+                        >
+                          Contains lowercase letter
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`material-symbols-outlined text-lg transition-all ${
+                            passwordStrength.number ? 'text-emerald-500' : 'text-stone-300'
+                          }`}
+                        >
+                          {passwordStrength.number ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            passwordStrength.number
+                              ? 'text-emerald-600 font-medium'
+                              : 'text-stone-500'
+                          }`}
+                        >
+                          Contains number
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span
+                          className={`material-symbols-outlined text-lg transition-all ${
+                            passwordStrength.special ? 'text-emerald-500' : 'text-stone-300'
+                          }`}
+                        >
+                          {passwordStrength.special ? 'check_circle' : 'radio_button_unchecked'}
+                        </span>
+                        <span
+                          className={`text-xs ${
+                            passwordStrength.special
+                              ? 'text-emerald-600 font-medium'
+                              : 'text-stone-500'
+                          }`}
+                        >
+                          Contains special character
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* confirm password */}
+                {!isLogin && !isForgotPassword && (
+                  <div className="mt-3">
+                    <label
+                      className="block text-sm font-medium text-[#5D4037] mb-1"
+                      htmlFor="confirmPassword"
+                    >
+                      Confirm Password
+                    </label>
+                    <div className="relative">
+                      <span className="material-symbols-outlined absolute left-3 top-3 text-stone-400 text-[20px]">
+                        lock
+                      </span>
+                      <input
+                        id="confirmPassword"
+                        type={showPassword ? 'text' : 'password'}
+                        autoComplete="new-password"
+                        placeholder="••••••••"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value);
+                          if (otpSent) resetSignupOtpState();
+                        }}
+                        disabled={otpSent}
+                        className="block w-full rounded-lg border border-stone-200 bg-stone-50 pl-10 pr-10 py-3 text-[#3E2723] text-sm focus:ring-2 focus:ring-[#8B4513] focus:border-[#8B4513] shadow-sm outline-none"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {!isLogin && !isForgotPassword && otpSent && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-[#5D4037] mb-3">
+                      Enter 5-digit OTP
+                    </label>
+                    <div className="flex gap-3 justify-center mb-3">
+                      {otpDigits.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={(el) => (otpInputRefs.current[index] = el)}
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleOtpChange(index, e.target.value)}
+                          onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                          onPaste={handleOtpPaste}
+                          disabled={otpExpired}
+                          className="w-12 h-12 text-center text-xl font-bold rounded-lg border-2 border-stone-200 bg-stone-50 text-[#3E2723] focus:border-[#8B4513] focus:ring-2 focus:ring-[#8B4513] focus:ring-opacity-50 outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:border-stone-300"
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span
+                        className={`text-xs font-semibold ${
+                          otpExpired
+                            ? 'text-red-600'
+                            : otpTimer <= 60
+                              ? 'text-orange-600'
+                              : 'text-stone-500'
+                        }`}
+                      >
+                        {otpExpired ? 'OTP Expired' : `${formatTime(otpTimer)} remaining`}
+                      </span>
+                      <Button
+                        type="button"
+                        onClick={async () => {
+                          setError('');
+                          setSuccessMessage('');
+                          try {
+                            setSubmitting(true);
+                            await requestSignupOtp(fullName, email, password, role);
+                            setOtpTimer(600);
+                            setOtpExpired(false);
+                            setOtpDigits(['', '', '', '', '']);
+                            setOtp('');
+                            otpInputRefs.current[0]?.focus();
+                            setSuccessMessage('A new OTP has been sent to your email.');
+                          } catch (err) {
+                            setError(err.message || 'Could not resend OTP. Please try again.');
+                          } finally {
+                            setSubmitting(false);
+                          }
+                        }}
+                        disabled={submitting}
+                        className="text-xs font-semibold text-[#8B4513] hover:text-[#703810] disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Resend OTP
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">error</span>
+                {error}
+              </div>
+            )}
+
+            {successMessage && (
+              <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg text-sm flex items-start gap-2">
+                <span className="material-symbols-outlined text-lg mt-0.5">check_circle</span>
+                <span>{successMessage}</span>
               </div>
             )}
 
@@ -319,7 +689,9 @@ export default function LoginPage() {
                     ? 'Send reset link'
                     : isLogin
                       ? 'Sign in to KalaSetu'
-                      : 'Create Account'}
+                      : otpSent
+                        ? 'Verify OTP & Create Account'
+                        : 'Send OTP'}
                   <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </>
               )}
@@ -364,6 +736,16 @@ export default function LoginPage() {
                     setIsForgotPassword(false);
                     setError('');
                     setSuccessMessage('');
+                    setPassword('');
+                    setConfirmPassword('');
+                    resetSignupOtpState();
+                    setPasswordStrength({
+                      length: false,
+                      uppercase: false,
+                      lowercase: false,
+                      number: false,
+                      special: false,
+                    });
                   }}
                   className="font-semibold text-[#8B4513] hover:text-[#703810] transition-colors"
                 >
@@ -379,6 +761,16 @@ export default function LoginPage() {
                     setIsForgotPassword(false);
                     setError('');
                     setSuccessMessage('');
+                    setPassword('');
+                    setConfirmPassword('');
+                    resetSignupOtpState();
+                    setPasswordStrength({
+                      length: false,
+                      uppercase: false,
+                      lowercase: false,
+                      number: false,
+                      special: false,
+                    });
                   }}
                   className="font-semibold text-[#8B4513] hover:text-[#703810] transition-colors"
                 >
